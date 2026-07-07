@@ -1,10 +1,11 @@
 import { getGrievanceDay } from '../data/swis';
+import DownloadButton from './DownloadButton';
 
 function fmt(n) {
   return n ? `$${Math.round(n).toLocaleString()}` : 'N/A';
 }
 
-export default function GrievancePanel({ parcel, municipality, analysis }) {
+export default function GrievancePanel({ parcel, municipality, analysis, comps }) {
   const grievanceDay = getGrievanceDay();
   const nextYear = getGrievanceDay(new Date().getFullYear() + 1);
   const today = new Date();
@@ -138,6 +139,24 @@ export default function GrievancePanel({ parcel, municipality, analysis }) {
         <div className="mt-3 text-xs text-slate-400">
           Copy these values into RP-524 Section 1. For contested value (Section 3), use a recent sale price,
           independent appraisal, or the median comparable market value shown above.
+        </div>
+      </div>
+
+      {/* Download */}
+      <div className="mt-6 pt-5 border-t border-slate-200 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <div>
+          <div className="text-sm font-semibold text-slate-800">Ready to file?</div>
+          <div className="text-xs text-slate-500 mt-0.5">
+            Download a 3-page PDF evidence package: property data, RP-524 pre-fill reference, and full comps table.
+          </div>
+        </div>
+        <div className="shrink-0">
+          <DownloadButton
+            parcel={parcel}
+            municipality={municipality}
+            analysis={analysis}
+            comps={comps}
+          />
         </div>
       </div>
 

@@ -5,6 +5,7 @@ import AddressSearch from './components/AddressSearch';
 import ParcelCard from './components/ParcelCard';
 import CompsTable from './components/CompsTable';
 import GrievancePanel from './components/GrievancePanel';
+import ParcelMap from './components/ParcelMap';
 import { searchByAddress, getComparables, normalizeParcel, analyzeOverassessment } from './api/orpts';
 import { getMunicipalities } from './data/swis';
 
@@ -178,11 +179,16 @@ export default function App() {
           />
         )}
 
+        {step === 4 && !loading && (
+          <ParcelMap parcel={selectedParcel} comps={analysis?.compRatios || []} />
+        )}
+
         {step === 4 && analysis && !loading && (
           <GrievancePanel
             parcel={selectedParcel}
             municipality={municipality}
             analysis={analysis}
+            comps={comps}
           />
         )}
       </main>
