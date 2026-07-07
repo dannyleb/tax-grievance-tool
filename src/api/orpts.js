@@ -22,21 +22,27 @@ function buildUrl(params) {
 }
 
 /**
- * Search for a property by address within a SWIS jurisdiction
+ * Search for a property by address within a municipality.
+ * Searches by municipality_name rather than swis_code so results come back
+ * regardless of which SWIS sub-jurisdiction (village vs TOV) the parcel is in.
  */
-export async function searchByAddress({ swis, streetAddress, limit = 10 }) {
+export async function searchByAddress({ swis, municipalityName, streetAddress, limit = 10 }) {
   const normalized = streetAddress.trim().toUpperCase();
-  // Try to parse street number from address
   const parts = normalized.split(' ');
   const streetNum = parts[0].match(/^\d+$/) ? parts[0] : null;
   const streetName = streetNum ? parts.slice(1).join(' ') : normalized;
 
-  let whereClause = `swis_code='${swis}'`;
+  // Prefer municipality_name search (covers all sub-jurisdictions).
+  // Fall back to swis_code if no name provided.
+  let whereClause = municipalityName
+    ? `upper(municipality_name)='${municipalityName.toUpperCase().replace(/'/g, "''")}'`
+    : `swis_code='${swis}'`;
+
   if (streetNum) {
     whereClause += ` AND parcel_address_number='${streetNum}'`;
   }
   if (streetName) {
-    whereClause += ` AND upper(parcel_address_street) like '%${streetName.split(' ')[0]}%'`;
+    whereClause += ` AND upper(parcel_address_street) like '%${streetName.split(' ')[0].replace(/'/g, "''")}%'`;
   }
 
   const url = buildUrl({

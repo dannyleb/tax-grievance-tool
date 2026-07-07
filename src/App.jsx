@@ -48,7 +48,7 @@ export default function App() {
     setComps([]);
     setAnalysis(null);
     try {
-      const raw = await searchByAddress({ swis: municipality.swis, streetAddress: address });
+      const raw = await searchByAddress({ swis: municipality.swis, municipalityName: municipality.name, streetAddress: address });
       if (!raw.length) {
         setError('No parcels found. Try a partial street name (e.g. "Cronin" instead of "123 Cronin Rd").');
       } else {

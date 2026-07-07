@@ -1727,8 +1727,27 @@ export const NY_MUNICIPALITIES = {
 
 export const COUNTY_NAMES = Object.keys(NY_MUNICIPALITIES).sort();
 
+// Deduplicate municipalities by name within each county.
+// SWIS codes have sub-jurisdictions: villages (e.g. 412001, 412003) and TOV
+// (town-outside-village, ending in 89, e.g. 412089). For the dropdown we show
+// one entry per name. Preference order: TOV (*89) > lowest-numbered entry.
+function dedupeByName(towns) {
+  const byName = {};
+  for (const t of towns) {
+    if (!byName[t.name]) {
+      byName[t.name] = t;
+    } else {
+      // Prefer TOV code (ends in 89) as it covers the most parcels
+      const isTov = t.swis.endsWith('89');
+      const currentIsTov = byName[t.name].swis.endsWith('89');
+      if (isTov && !currentIsTov) byName[t.name] = t;
+    }
+  }
+  return Object.values(byName).sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export function getMunicipalities(county) {
-  return NY_MUNICIPALITIES[county] || [];
+  return dedupeByName(NY_MUNICIPALITIES[county] || []);
 }
 
 export function getMunicipalityBySWIS(swis) {
