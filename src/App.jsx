@@ -6,6 +6,7 @@ import ParcelCard from './components/ParcelCard';
 import CompsTable from './components/CompsTable';
 import GrievancePanel from './components/GrievancePanel';
 import ParcelMap from './components/ParcelMap';
+import TownStatsPanel from './components/TownStatsPanel';
 import { searchByAddress, getComparables, normalizeParcel, analyzeOverassessment } from './api/orpts';
 import { getMunicipalities } from './data/swis';
 
@@ -181,6 +182,10 @@ export default function App() {
 
         {step === 4 && !loading && (
           <ParcelMap parcel={selectedParcel} comps={analysis?.compRatios || []} />
+        )}
+
+        {step === 4 && !loading && (
+          <TownStatsPanel parcel={selectedParcel} municipality={municipality} />
         )}
 
         {step === 4 && analysis && !loading && (
