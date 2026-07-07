@@ -52,7 +52,14 @@ export default function App() {
       if (!raw.length) {
         setError('No parcels found. Try a partial street name (e.g. "Cronin" instead of "123 Cronin Rd").');
       } else {
-        const normalized = raw.map(normalizeParcel);
+        // Dedupe by print_key_code — same parcel appears under multiple SWIS
+        // sub-jurisdictions (village codes + TOV code) in the ORPTS dataset
+        const seen = new Set();
+        const normalized = raw.map(normalizeParcel).filter(p => {
+          if (seen.has(p.printKey)) return false;
+          seen.add(p.printKey);
+          return true;
+        });
         setSearchResults(normalized);
         setStep(3);
         if (normalized.length === 1) {
