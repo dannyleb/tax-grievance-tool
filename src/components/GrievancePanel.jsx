@@ -1,11 +1,12 @@
 import { getGrievanceDay } from '../data/swis';
 import DownloadButton from './DownloadButton';
+import DisputeGenerator from './DisputeGenerator';
 
 function fmt(n) {
   return n ? `$${Math.round(n).toLocaleString()}` : 'N/A';
 }
 
-export default function GrievancePanel({ parcel, municipality, analysis, comps }) {
+export default function GrievancePanel({ parcel, municipality, analysis, comps, subjectTax }) {
   const grievanceDay = getGrievanceDay();
   const nextYear = getGrievanceDay(new Date().getFullYear() + 1);
   const today = new Date();
@@ -75,6 +76,35 @@ export default function GrievancePanel({ parcel, municipality, analysis, comps }
           </p>
         </div>
       )}
+
+      {/* AI Dispute Generator */}
+      <div className="bg-purple-50 border border-purple-200 rounded-xl p-5 mb-5">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="flex-1">
+            <div className="font-semibold text-purple-900 mb-1 flex items-center gap-2">
+              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.347.347a3.75 3.75 0 01-2.121 1.053 3.75 3.75 0 01-3.254-1.053l-.347-.347z" />
+              </svg>
+              Generate AI Dispute Statement
+            </div>
+            <p className="text-sm text-purple-700">
+              Uses your assessment data, comparables, and tax figures to draft a formal written
+              statement for the Board of Assessment Review — ready to attach to Form RP-524 or
+              present at your hearing.
+            </p>
+          </div>
+          <div className="shrink-0">
+            <DisputeGenerator
+              parcel={parcel}
+              municipality={municipality}
+              analysis={analysis}
+              subjectTax={subjectTax}
+              comps={comps}
+            />
+          </div>
+        </div>
+      </div>
 
       {/* Steps */}
       <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Filing Steps</h3>

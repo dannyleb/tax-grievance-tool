@@ -218,6 +218,7 @@ export default function App() {
             municipality={municipality}
             analysis={analysis}
             comps={comps}
+            subjectTax={subjectTax}
           />
         )}
       </main>
