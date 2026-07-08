@@ -101,6 +101,7 @@ export default function GrievancePanel({ parcel, municipality, analysis, comps, 
               analysis={analysis}
               subjectTax={subjectTax}
               comps={comps}
+              canGenerate={analysis.hasCase || analysis.borderline}
             />
           </div>
         </div>

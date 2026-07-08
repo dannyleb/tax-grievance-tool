@@ -22,9 +22,15 @@ function buildPrompt({ parcel, municipality, analysis, subjectTax, comps }) {
     `Market Value: ${fmt(c.fullMarketValue)}, Ratio: ${pct(c.assessmentRatio)}`
   ).join('\n');
 
-  const allCompLines = (analysis.compRatios || []).slice(0, 15).map((c, i) =>
+  // Only include comps assessed at a lower ratio — these are the evidence for unequal assessment.
+  // Never expose comps assessed at a higher rate; that would undermine the homeowner's case.
+  const lowerRatioComps = (analysis.compRatios || [])
+    .filter(c => c.assessmentRatio < subjectRatio)
+    .slice(0, 15);
+
+  const allCompLines = lowerRatioComps.map((c, i) =>
     `  ${i + 1}. ${c.address || 'Address on file'} — Assessed: ${fmt(c.assessmentTotal)}, ` +
-    `FMV: ${fmt(c.fullMarketValue)}, Ratio: ${pct(c.assessmentRatio)}${c.assessmentRatio < subjectRatio * 0.95 ? ' ← LOWER RATE' : ''}`
+    `FMV: ${fmt(c.fullMarketValue)}, Ratio: ${pct(c.assessmentRatio)}`
   ).join('\n');
 
   const taxBlock = subjectTax
@@ -74,8 +80,8 @@ ${taxBlock}
 === COMPARABLE PROPERTIES WITH LOWER ASSESSMENT RATIOS (key evidence) ===
 ${flaggedComps.length > 0 ? compLines : '  No flagged comps — borderline case, use all comps below'}
 
-=== ALL COMPARABLES REVIEWED (same class, same municipality, ±25% market value) ===
-${allCompLines}
+=== ADDITIONAL COMPARABLES WITH LOWER ASSESSMENT RATIOS (same class, same municipality, ±25% market value) ===
+${allCompLines || '  (All comparables listed above as key evidence)'}
 
 === NY LAW BASIS ===
 Real Property Tax Law §305: "The assessment of each parcel of real property shall not exceed its full value, and the ratio of assessed value to full value shall be uniform throughout each assessing unit."
@@ -96,6 +102,10 @@ This statement will be submitted to the Board of Assessment Review (BAR) which c
 export async function generateDisputeStatement({ parcel, municipality, analysis, subjectTax, comps, onChunk, onDone }) {
   if (!API_KEY) {
     throw new Error('NO_API_KEY');
+  }
+
+  if (!analysis.hasCase && !analysis.borderline) {
+    throw new Error('NO_CASE');
   }
 
   const client = new Anthropic({

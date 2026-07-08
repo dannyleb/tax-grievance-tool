@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { generateDisputeStatement, hasApiKey } from '../utils/generateDispute';
 
-export default function DisputeGenerator({ parcel, municipality, analysis, subjectTax, comps }) {
+export default function DisputeGenerator({ parcel, municipality, analysis, subjectTax, comps, canGenerate }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [text, setText] = useState('');
@@ -39,6 +39,8 @@ export default function DisputeGenerator({ parcel, municipality, analysis, subje
       setLoading(false);
       if (e.message === 'NO_API_KEY') {
         setError('API key not configured. See setup instructions below.');
+      } else if (e.message === 'NO_CASE') {
+        setError('Your property does not appear to be over-assessed relative to comparable properties — no grievance argument can be generated.');
       } else {
         setError(`Generation failed: ${e.message}`);
       }
@@ -85,8 +87,9 @@ export default function DisputeGenerator({ parcel, municipality, analysis, subje
       {/* Trigger button */}
       <button
         onClick={handleGenerate}
-        className="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
-        title={!apiKeyAvailable ? 'AI features require API key configuration' : ''}
+        disabled={!canGenerate}
+        className="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+        title={!canGenerate ? 'No over-assessment detected — grievance statement not applicable' : !apiKeyAvailable ? 'AI features require API key configuration' : ''}
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
