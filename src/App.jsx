@@ -7,7 +7,7 @@ import CompsTable from './components/CompsTable';
 import GrievancePanel from './components/GrievancePanel';
 import ParcelMap from './components/ParcelMap';
 import TownStatsPanel from './components/TownStatsPanel';
-import { searchByAddress, getComparables, normalizeParcel, analyzeOverassessment } from './api/orpts';
+import { searchByAddress, getComparables, normalizeParcel, analyzeOverassessment, getTaxRates, calcEstimatedTax } from './api/orpts';
 import { getMunicipalities } from './data/swis';
 
 export default function App() {
@@ -17,6 +17,8 @@ export default function App() {
   const [selectedParcel, setSelectedParcel] = useState(null);
   const [comps, setComps] = useState([]);
   const [analysis, setAnalysis] = useState(null);
+  const [taxRates, setTaxRates] = useState([]);
+  const [subjectTax, setSubjectTax] = useState(null);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -28,6 +30,8 @@ export default function App() {
     setSelectedParcel(null);
     setComps([]);
     setAnalysis(null);
+    setTaxRates([]);
+    setSubjectTax(null);
     setStep(1);
   }
 
@@ -37,6 +41,8 @@ export default function App() {
     setSelectedParcel(null);
     setComps([]);
     setAnalysis(null);
+    setTaxRates([]);
+    setSubjectTax(null);
     setStep(2);
   }
 
@@ -77,19 +83,28 @@ export default function App() {
     setSelectedParcel(parcel);
     setComps([]);
     setAnalysis(null);
+    setTaxRates([]);
+    setSubjectTax(null);
     setLoading(true);
     setError('');
     try {
-      const rawComps = await getComparables({
-        swis: parcel.swis,
-        propertyClass: parcel.propertyClass,
-        fullMarketValue: parcel.fullMarketValue,
-        limit: 30,
-      });
+      const [rawComps, rates] = await Promise.all([
+        getComparables({
+          swis: parcel.swis,
+          propertyClass: parcel.propertyClass,
+          fullMarketValue: parcel.fullMarketValue,
+          limit: 30,
+        }),
+        getTaxRates(parcel.swis).catch(() => []),
+      ]);
+
       const normalized = rawComps
         .map(normalizeParcel)
         .filter(c => c.printKey !== parcel.printKey);
       setComps(normalized);
+      setTaxRates(rates);
+      setSubjectTax(calcEstimatedTax(parcel, rates));
+
       const result = analyzeOverassessment(parcel, normalized, municipality.equalizationRate);
       setAnalysis(result);
       setStep(4);
@@ -176,6 +191,7 @@ export default function App() {
             parcel={selectedParcel}
             equalizationRate={municipality.equalizationRate}
             analysis={analysis}
+            subjectTax={subjectTax}
           />
         )}
 
@@ -184,6 +200,7 @@ export default function App() {
             subject={selectedParcel}
             comps={analysis.compRatios}
             analysis={analysis}
+            taxRates={taxRates}
           />
         )}
 

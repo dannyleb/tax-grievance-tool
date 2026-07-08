@@ -30,7 +30,7 @@ function VerdictBadge({ analysis }) {
   );
 }
 
-export default function ParcelCard({ parcel, equalizationRate, analysis }) {
+export default function ParcelCard({ parcel, equalizationRate, analysis, subjectTax }) {
   const assessorMarketValue = calcAssessorMarketValue(parcel, equalizationRate);
 
   return (
@@ -57,7 +57,7 @@ export default function ParcelCard({ parcel, equalizationRate, analysis }) {
       </div>
 
       {/* Value grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
         <ValueBox
           label="Total Assessment"
           value={fmt(parcel.assessmentTotal)}
@@ -84,7 +84,27 @@ export default function ParcelCard({ parcel, equalizationRate, analysis }) {
           value={fmt(parcel.schoolTaxable)}
           sub="School district portion"
         />
+        <ValueBox
+          label={subjectTax ? `Est. Tax (FY${subjectTax.fiscalYear})` : 'Est. Annual Tax'}
+          value={subjectTax ? fmt(subjectTax.totalTax) : '—'}
+          sub={subjectTax
+            ? `County + Town + ${subjectTax.schoolName}${subjectTax.isEstimate ? ' (est.)' : ''}`
+            : 'Loading...'}
+          taxHighlight={subjectTax?.totalTax > 0}
+        />
       </div>
+
+      {/* Tax breakdown */}
+      {subjectTax && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900 flex flex-wrap gap-x-5 gap-y-1">
+          <span className="font-semibold text-amber-800">Prior-Year Tax Breakdown (FY{subjectTax.fiscalYear})</span>
+          <span>County: {fmt(subjectTax.countyTax)} <span className="text-amber-600">({subjectTax.countyRate}/1k)</span></span>
+          <span>Town: {fmt(subjectTax.municipalTax)} <span className="text-amber-600">({subjectTax.municipalRate}/1k)</span></span>
+          <span>School ({subjectTax.schoolName}): {fmt(subjectTax.schoolTax)} <span className="text-amber-600">({subjectTax.schoolRate.toFixed(2)}/1k)</span></span>
+          <span className="font-semibold">Total: {fmt(subjectTax.totalTax)}</span>
+          {subjectTax.isEstimate && <span className="text-amber-600 italic">* school rate is median estimate — school district not matched</span>}
+        </div>
+      )}
 
       {/* Analysis summary */}
       {analysis && (
@@ -133,12 +153,21 @@ export default function ParcelCard({ parcel, equalizationRate, analysis }) {
   );
 }
 
-function ValueBox({ label, value, sub, highlight }) {
+function ValueBox({ label, value, sub, highlight, taxHighlight }) {
+  const bg = highlight ? 'bg-blue-50 border-blue-200'
+    : taxHighlight ? 'bg-amber-50 border-amber-200'
+    : 'bg-slate-50 border-slate-200';
+  const textColor = highlight ? 'text-blue-800'
+    : taxHighlight ? 'text-amber-800'
+    : 'text-slate-800';
+  const labelColor = highlight ? 'text-blue-700'
+    : taxHighlight ? 'text-amber-700'
+    : 'text-slate-600';
   return (
-    <div className={`rounded-lg p-3 text-center ${highlight ? 'bg-blue-50 border border-blue-200' : 'bg-slate-50 border border-slate-200'}`}>
-      <div className={`text-lg font-bold ${highlight ? 'text-blue-800' : 'text-slate-800'}`}>{value}</div>
-      <div className={`text-xs font-medium mt-0.5 ${highlight ? 'text-blue-700' : 'text-slate-600'}`}>{label}</div>
-      {sub && <div className="text-xs text-slate-400 mt-0.5">{sub}</div>}
+    <div className={`rounded-lg p-3 text-center border ${bg}`}>
+      <div className={`text-lg font-bold ${textColor}`}>{value}</div>
+      <div className={`text-xs font-medium mt-0.5 ${labelColor}`}>{label}</div>
+      {sub && <div className="text-xs text-slate-400 mt-0.5 leading-tight">{sub}</div>}
     </div>
   );
 }

@@ -1,9 +1,24 @@
+import { calcEstimatedTax } from '../api/orpts';
+
 function fmt(n) {
   return n ? `$${Math.round(n).toLocaleString()}` : 'N/A';
 }
 
-export default function CompsTable({ subject, comps, analysis }) {
+export default function CompsTable({ subject, comps, analysis, taxRates }) {
   const subjectRatio = analysis.subjectRatio;
+  const hasTaxRates = taxRates && taxRates.length > 0;
+
+  // Pre-compute estimated tax for each comp using same rate set
+  // (county + municipal rates are the same for all parcels in this SWIS;
+  //  school rate is matched by school district code when possible)
+  function compTax(comp) {
+    if (!hasTaxRates) return null;
+    const tax = calcEstimatedTax(comp, taxRates);
+    return tax?.totalTax || null;
+  }
+
+  const subjectTaxAmt = hasTaxRates ? calcEstimatedTax(subject, taxRates)?.totalTax : null;
+  const taxYear = hasTaxRates ? taxRates[0]?.fiscalYear : null;
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
@@ -29,6 +44,11 @@ export default function CompsTable({ subject, comps, analysis }) {
               <th className="text-right py-2 px-3 font-semibold text-slate-600">Market Value</th>
               <th className="text-right py-2 px-3 font-semibold text-slate-600">Assess. Ratio</th>
               <th className="text-right py-2 px-3 font-semibold text-slate-600">vs. Yours</th>
+              {hasTaxRates && (
+                <th className="text-right py-2 px-3 font-semibold text-amber-700">
+                  Est. Tax {taxYear ? `(FY${taxYear})` : ''}
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -44,12 +64,19 @@ export default function CompsTable({ subject, comps, analysis }) {
                 {(subjectRatio * 100).toFixed(1)}%
               </td>
               <td className="py-2 px-3 text-right text-blue-800">—</td>
+              {hasTaxRates && (
+                <td className="py-2 px-3 text-right font-bold text-amber-700">
+                  {subjectTaxAmt ? fmt(subjectTaxAmt) : '—'}
+                </td>
+              )}
             </tr>
 
             {comps.map((comp, i) => {
               const diff = subjectRatio - comp.assessmentRatio;
               const diffPct = (diff / subjectRatio) * 100;
               const flagged = comp.assessmentRatio < subjectRatio * 0.95;
+              const compTaxAmt = compTax(comp);
+              const taxDiff = subjectTaxAmt && compTaxAmt ? subjectTaxAmt - compTaxAmt : null;
 
               return (
                 <tr
@@ -75,6 +102,14 @@ export default function CompsTable({ subject, comps, analysis }) {
                       : 'similar'
                     }
                   </td>
+                  {hasTaxRates && (
+                    <td className={`py-2 px-3 text-right ${flagged ? 'text-red-600 font-medium' : 'text-slate-600'}`}>
+                      {compTaxAmt ? fmt(compTaxAmt) : '—'}
+                      {flagged && taxDiff > 0 && (
+                        <div className="text-xs text-red-500">you pay {fmt(taxDiff)} more</div>
+                      )}
+                    </td>
+                  )}
                 </tr>
               );
             })}
@@ -84,6 +119,12 @@ export default function CompsTable({ subject, comps, analysis }) {
 
       <div className="mt-4 p-3 bg-slate-50 rounded-lg text-xs text-slate-500">
         <strong>Assessment Ratio</strong> = Total Assessment ÷ Full Market Value. If comparable homes have a lower ratio, they pay less tax per dollar of market value — a key basis for a grievance complaint.
+        {hasTaxRates && (
+          <span className="ml-2">
+            <strong>Est. Tax</strong> = county + town + school rates × full market value, sourced from NYS Real Property Tax Rates dataset.
+            School rate matched by district when possible, otherwise median rate used.
+          </span>
+        )}
       </div>
     </div>
   );

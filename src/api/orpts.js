@@ -4,6 +4,10 @@
 // Docs: https://dev.socrata.com/foundry/data.ny.gov/7vem-aaz7
 
 const BASE_URL = 'https://data.ny.gov/resource/7vem-aaz7.json';
+const TAX_RATES_URL = 'https://data.ny.gov/resource/iq85-sdzs.json';
+
+// In-memory cache keyed by swis_code so we don't re-fetch on every comp
+const taxRatesCache = {};
 // Register a free app token at data.ny.gov for higher rate limits (1000 req/hr vs throttled)
 const APP_TOKEN = import.meta.env.VITE_SOCRATA_APP_TOKEN || '';
 
@@ -142,6 +146,10 @@ export function normalizeParcel(raw) {
     townTaxable: parseFloat(raw.town_taxable_value) || 0,
     schoolTaxable: parseFloat(raw.school_taxable) || 0,
 
+    // School district (needed to match tax rates)
+    schoolDistrictCode: raw.school_district_code || '',
+    schoolDistrictName: raw.school_district_name || '',
+
     // Geo
     gridEast: raw.grid_coordinates_east,
     gridNorth: raw.grid_coordinates_north,
@@ -218,4 +226,96 @@ function median(arr) {
   return sorted.length % 2 !== 0
     ? sorted[mid]
     : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+/**
+ * Fetch all tax rate rows for a given SWIS code (most recent roll year).
+ * Dataset: Real Property Tax Rates and Levy Data — data.ny.gov/resource/iq85-sdzs.json
+ * Multiple rows per SWIS because different school districts can overlap one town.
+ * County and municipal rates are the same across all rows; school rate varies.
+ *
+ * Returns array of rate objects, one per school district, newest year first.
+ */
+export async function getTaxRates(swis) {
+  if (taxRatesCache[swis]) return taxRatesCache[swis];
+
+  const url = new URL(TAX_RATES_URL);
+  url.searchParams.set('$where', `swis_code='${swis}'`);
+  url.searchParams.set('$order', 'roll_year DESC');
+  url.searchParams.set('$limit', '20');
+
+  const res = await fetch(url.toString(), { headers: buildHeaders() });
+  if (!res.ok) throw new Error(`Tax rates API error: ${res.status}`);
+  const rows = await res.json();
+
+  // Normalize
+  const rates = rows.map(r => ({
+    rollYear: r.roll_year,
+    fiscalYear: r.fiscal_year_ending,
+    swis: r.swis_code,
+    municipality: r.municipality,
+    schoolCode: r.school_code,
+    schoolName: r.school_name,
+    valueType: r.type_of_value_on_whichtax_rates_are_applied, // "Full Value" or "Assessed Value"
+    countyRate: parseFloat(r.county_tax_rate_outside_village_per_1000_assessed_value) || 0,
+    municipalRate: parseFloat(r.municipal_tax_rate_outside_village_per_1000_assessed_value) || 0,
+    schoolRate: parseFloat(r.school_district_tax_rate_per_1000_assessed_value) || 0,
+  }));
+
+  taxRatesCache[swis] = rates;
+  return rates;
+}
+
+/**
+ * Calculate estimated prior-year tax for a parcel given the rate rows for its SWIS.
+ *
+ * Matches on school district code when possible; falls back to the median school rate.
+ * Rates are per $1,000 of full market value (type = "Full Value" in most NY assessing units).
+ * For fractional assessment towns (type = "Assessed Value") we use the assessment total.
+ *
+ * Returns { countyTax, municipalTax, schoolTax, totalTax, schoolName, rollYear, note }
+ */
+export function calcEstimatedTax(parcel, taxRates) {
+  if (!taxRates || !taxRates.length) return null;
+
+  // Use most recent roll year's rates
+  const latestYear = taxRates[0].rollYear;
+  const latestRates = taxRates.filter(r => r.rollYear === latestYear);
+
+  // County and municipal rates are the same for all rows in same SWIS/year
+  const { countyRate, municipalRate, valueType } = latestRates[0];
+
+  // Match school district by code; fall back to median school rate
+  const schoolMatch = latestRates.find(r => r.schoolCode === parcel.schoolDistrictCode)
+    || latestRates.find(r => r.schoolName?.toLowerCase() === parcel.schoolDistrictName?.toLowerCase());
+  const schoolRate = schoolMatch
+    ? schoolMatch.schoolRate
+    : median(latestRates.map(r => r.schoolRate));
+  const schoolName = schoolMatch?.schoolName || 'median estimate';
+
+  // Base value: full market value for "Full Value" municipalities,
+  // assessed total for "Assessed Value" municipalities
+  const base = valueType === 'Full Value'
+    ? parcel.fullMarketValue
+    : parcel.assessmentTotal;
+
+  const countyTax = base * countyRate / 1000;
+  const municipalTax = base * municipalRate / 1000;
+  const schoolTax = base * schoolRate / 1000;
+  const totalTax = countyTax + municipalTax + schoolTax;
+
+  return {
+    countyTax,
+    municipalTax,
+    schoolTax,
+    totalTax,
+    countyRate,
+    municipalRate,
+    schoolRate,
+    schoolName,
+    rollYear: latestYear,
+    fiscalYear: latestRates[0].fiscalYear,
+    valueType,
+    isEstimate: !schoolMatch,
+  };
 }
