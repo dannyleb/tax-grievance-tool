@@ -9,25 +9,15 @@ export default function Header() {
           </svg>
         </div>
         <div>
-          <h1 className="text-xl font-bold text-slate-900 leading-tight">NY Property Tax Grievance Tool</h1>
-          <p className="text-sm text-slate-500">Find over-assessments and contest your property taxes — New York State</p>
-        </div>
-        <div className="ml-auto hidden sm:flex items-center gap-2">
-          <a
-            href="https://www.tax.ny.gov/pit/property/contest/contestasmt.htm"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-blue-600 hover:text-blue-800 underline"
-          >
-            How to Grieve →
-          </a>
+          <h1 className="text-xl font-bold text-slate-900 leading-tight">Property Tax Appeal Tool</h1>
+          <p className="text-sm text-slate-500">Find over-assessments and contest your property taxes — all 50 states</p>
         </div>
       </div>
 
       {/* Step banner */}
       <div className="bg-blue-50 border-t border-blue-100 px-4 py-2">
         <div className="max-w-5xl mx-auto text-sm text-blue-700">
-          <strong>How it works:</strong> Select your county &amp; town → Enter your address → See your assessment → Compare to neighbors → File a grievance if over-assessed
+          <strong>How it works:</strong> Select your state &amp; location → Enter your address → See your assessment → Compare to neighbors → File an appeal if over-assessed
         </div>
       </div>
     </header>

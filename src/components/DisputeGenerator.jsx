@@ -40,7 +40,7 @@ export default function DisputeGenerator({ parcel, municipality, analysis, subje
       if (e.message === 'NO_API_KEY') {
         setError('API key not configured. See setup instructions below.');
       } else if (e.message === 'NO_CASE') {
-        setError('Your property does not appear to be over-assessed relative to comparable properties — no grievance argument can be generated.');
+        setError('Your property does not appear to be over-assessed relative to comparable properties — no appeal argument can be generated.');
       } else {
         setError(`Generation failed: ${e.message}`);
       }
@@ -57,7 +57,7 @@ export default function DisputeGenerator({ parcel, municipality, analysis, subje
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Grievance Statement — ${parcel.address}</title>
+          <title>Appeal Statement — ${parcel.address}</title>
           <style>
             body { font-family: Georgia, serif; font-size: 12pt; line-height: 1.6; max-width: 7in; margin: 1in auto; color: #000; }
             pre { white-space: pre-wrap; font-family: inherit; }
@@ -89,7 +89,7 @@ export default function DisputeGenerator({ parcel, municipality, analysis, subje
         onClick={handleGenerate}
         disabled={!canGenerate}
         className="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
-        title={!canGenerate ? 'No over-assessment detected — grievance statement not applicable' : !apiKeyAvailable ? 'AI features require API key configuration' : ''}
+        title={!canGenerate ? 'No over-assessment detected — appeal statement not applicable' : !apiKeyAvailable ? 'AI features require API key configuration' : ''}
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -106,7 +106,7 @@ export default function DisputeGenerator({ parcel, municipality, analysis, subje
             {/* Modal header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
               <div>
-                <h2 className="text-lg font-bold text-slate-900">AI Grievance Statement</h2>
+                <h2 className="text-lg font-bold text-slate-900">AI Appeal Statement</h2>
                 <p className="text-sm text-slate-500">
                   {parcel.address} &middot; {parcel.municipality}, {parcel.county} County
                 </p>
@@ -178,13 +178,29 @@ export default function DisputeGenerator({ parcel, municipality, analysis, subje
               {done && (
                 <div className="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-800">
                   <div className="font-semibold mb-2">How to use this statement</div>
-                  <ul className="space-y-1 list-disc ml-4 text-blue-700">
-                    <li>Print or copy and attach to your completed <strong>Form RP-524</strong> as supporting documentation</li>
-                    <li>Bring printed copies of the <strong>Comparables Table</strong> (available via Download Evidence Package)</li>
-                    <li>You may appear at the BAR hearing in person or submit written evidence only</li>
-                    <li>Grievance Day is the <strong>4th Tuesday of May</strong> — check your town for exact date</li>
-                    <li>If the BAR denies your grievance, file for <strong>SCAR</strong> (~$30 fee, no attorney needed)</li>
-                  </ul>
+                  {stateInfo?.abbr === 'NY' ? (
+                    <ul className="space-y-1 list-disc ml-4 text-blue-700">
+                      <li>Print or copy and attach to your completed <strong>Form RP-524</strong> as supporting documentation</li>
+                      <li>Bring printed copies of the <strong>Comparables Table</strong> (available via Download Evidence Package)</li>
+                      <li>You may appear at the BAR hearing in person or submit written evidence only</li>
+                      <li>Grievance Day is the <strong>4th Tuesday of May</strong> — verify exact date with your town</li>
+                      <li>If the BAR denies your appeal, file for <strong>SCAR</strong> (~$30 fee, no attorney needed)</li>
+                    </ul>
+                  ) : stateInfo?.abbr === 'TX' ? (
+                    <ul className="space-y-1 list-disc ml-4 text-blue-700">
+                      <li>Print or copy and attach to your <strong>Form 50-132</strong> protest filing as supporting documentation</li>
+                      <li>Bring printed copies of the <strong>Comparables Table</strong> to your informal or formal ARB hearing</li>
+                      <li>You may present evidence in person, by affidavit, or by telephone at the ARB hearing</li>
+                      <li>Filing deadline: <strong>May 15</strong> or 30 days after your notice, whichever is later</li>
+                      <li>If denied, file for binding arbitration (≤$5M properties) or district court</li>
+                    </ul>
+                  ) : (
+                    <ul className="space-y-1 list-disc ml-4 text-blue-700">
+                      <li>Print or copy and attach to your state's official appeal form as supporting documentation</li>
+                      <li>Bring printed copies of the <strong>Comparables Table</strong> to your appeal hearing</li>
+                      <li>Check your state's appeal guide (shown in Step 1) for the exact deadline and submission process</li>
+                    </ul>
+                  )}
                 </div>
               )}
 
@@ -194,7 +210,7 @@ export default function DisputeGenerator({ parcel, municipality, analysis, subje
             <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between gap-3">
               <div className="text-xs text-slate-400">
                 {done
-                  ? 'Review carefully — AI-generated content should be verified before submission.'
+                  ? 'Review carefully — AI-generated content should be verified before filing.'
                   : loading
                   ? 'Drafting your statement with Claude AI...'
                   : ''}

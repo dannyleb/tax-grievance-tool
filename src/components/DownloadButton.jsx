@@ -14,7 +14,7 @@ export default function DownloadButton({ parcel, municipality, analysis, comps }
       const a = document.createElement('a');
       const addrSlug = parcel.address.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
       a.href = url;
-      a.download = `grievance_evidence_${addrSlug}.pdf`;
+      a.download = `appeal_evidence_${addrSlug}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {

@@ -10,7 +10,7 @@ function VerdictBadge({ analysis }) {
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-red-700 text-sm font-semibold">
         <span className="w-2 h-2 rounded-full bg-red-500 inline-block"></span>
-        Likely Over-Assessed — Consider Grievance
+        Likely Over-Assessed — Consider Appeal
       </span>
     );
   }

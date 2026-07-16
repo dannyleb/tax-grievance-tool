@@ -136,7 +136,7 @@ export default function CompsTable({ subject, comps, analysis, taxRates, stateAb
         {isTX ? (
           <><strong>$/SqFt</strong> = Appraised Value ÷ Building SqFt. Under TX Property Tax Code §41.43, if comparable homes are appraised at a lower $/sqft, you may be entitled to an equal-and-uniform reduction — a key basis for an ARB protest.</>
         ) : (
-          <><strong>Assessment Ratio</strong> = Total Assessment ÷ Full Market Value. If comparable homes have a lower ratio, they pay less tax per dollar of market value — a key basis for a grievance complaint.</>
+          <><strong>Assessment Ratio</strong> = Total Assessment ÷ Full Market Value. If comparable homes have a lower ratio, they pay less tax per dollar of market value — a key basis for an assessment appeal.</>
         )}
         {hasTaxRates && (
           <span className="ml-2">
