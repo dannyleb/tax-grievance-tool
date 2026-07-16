@@ -11,6 +11,7 @@ import { searchByAddress, getComparables, normalizeParcel, analyzeOverassessment
 import { getMunicipalities } from './data/swis';
 
 export default function App() {
+  const [selectedState, setSelectedState] = useState(null);
   const [county, setCounty] = useState('');
   const [municipality, setMunicipality] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
@@ -23,26 +24,34 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  function handleCountyChange(c) {
-    setCounty(c);
-    setMunicipality(null);
+  function resetParcelState() {
     setSearchResults([]);
     setSelectedParcel(null);
     setComps([]);
     setAnalysis(null);
     setTaxRates([]);
     setSubjectTax(null);
+    setError('');
+  }
+
+  function handleStateChange(s) {
+    setSelectedState(s);
+    setCounty('');
+    setMunicipality(null);
+    resetParcelState();
+    setStep(1);
+  }
+
+  function handleCountyChange(c) {
+    setCounty(c);
+    setMunicipality(null);
+    resetParcelState();
     setStep(1);
   }
 
   function handleMunicipalityChange(m) {
     setMunicipality(m);
-    setSearchResults([]);
-    setSelectedParcel(null);
-    setComps([]);
-    setAnalysis(null);
-    setTaxRates([]);
-    setSubjectTax(null);
+    resetParcelState();
     setStep(2);
   }
 
@@ -120,13 +129,11 @@ export default function App() {
   }
 
   function handleReset() {
-    setSearchResults([]);
-    setSelectedParcel(null);
-    setComps([]);
-    setAnalysis(null);
-    setError('');
+    resetParcelState();
     setStep(municipality ? 2 : 1);
   }
+
+  const showAddressSearch = step >= 2 && municipality && selectedState?.abbr === 'NY';
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -134,16 +141,19 @@ export default function App() {
 
       <main className="max-w-5xl mx-auto px-4 py-8 space-y-6">
         <LocationSelector
+          selectedState={selectedState}
           county={county}
           municipality={municipality}
+          onStateChange={handleStateChange}
           onCountyChange={handleCountyChange}
           onMunicipalityChange={handleMunicipalityChange}
           municipalities={county ? getMunicipalities(county) : []}
         />
 
-        {step >= 2 && municipality && (
+        {showAddressSearch && (
           <AddressSearch
             municipality={municipality}
+            selectedState={selectedState}
             onSearch={handleSearch}
             loading={loading}
             onReset={handleReset}
