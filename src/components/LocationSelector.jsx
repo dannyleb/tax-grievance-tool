@@ -1,12 +1,16 @@
 import { COUNTY_NAMES } from '../data/swis';
 import { STATES } from '../data/states';
+import { TX_COUNTIES } from '../data/tx-counties';
 
 export default function LocationSelector({
-  selectedState, county, municipality,
-  onStateChange, onCountyChange, onMunicipalityChange,
+  selectedState, county, municipality, txCounty,
+  onStateChange, onCountyChange, onMunicipalityChange, onTxCountyChange,
   municipalities,
 }) {
   const stateInfo = selectedState;
+  const isNY = selectedState?.abbr === 'NY';
+  const isTX = selectedState?.abbr === 'TX';
+  const selectedTxCountyInfo = txCounty ? TX_COUNTIES.find(c => c.name === txCounty) : null;
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
@@ -34,38 +38,66 @@ export default function LocationSelector({
           </select>
         </div>
 
-        {/* County — NY only */}
+        {/* County */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">County</label>
-          <select
-            value={county}
-            onChange={e => onCountyChange(e.target.value)}
-            disabled={!selectedState || selectedState.abbr !== 'NY'}
-            className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-slate-100 disabled:text-slate-400"
-          >
-            <option value="">— Select county —</option>
-            {selectedState?.abbr === 'NY' && COUNTY_NAMES.map(c => (
-              <option key={c} value={c}>{c} County</option>
-            ))}
-          </select>
-          {selectedState && selectedState.abbr !== 'NY' && (
-            <p className="mt-1 text-xs text-slate-400">County search coming soon for {selectedState.name}</p>
+          {isNY ? (
+            <select
+              value={county}
+              onChange={e => onCountyChange(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">— Select county —</option>
+              {COUNTY_NAMES.map(c => (
+                <option key={c} value={c}>{c} County</option>
+              ))}
+            </select>
+          ) : isTX ? (
+            <select
+              value={txCounty || ''}
+              onChange={e => onTxCountyChange(e.target.value || null)}
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">— Select county —</option>
+              {TX_COUNTIES.map(c => (
+                <option key={c.name} value={c.name}>
+                  {c.name} County{c.dataStatus === 'full' ? ' ✓' : ''}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <select
+              disabled
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-slate-100 text-slate-400 text-sm"
+            >
+              <option>— Select state first —</option>
+            </select>
+          )}
+          {isTX && selectedTxCountyInfo && (
+            <p className="mt-1 text-xs text-slate-400">
+              {selectedTxCountyInfo.cad}
+              {selectedTxCountyInfo.dataStatus === 'full'
+                ? ' — parcel search available'
+                : ' — parcel data coming soon'}
+            </p>
           )}
         </div>
 
         {/* Municipality — NY only */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Town / City / Village</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            {isNY ? 'Town / City / Village' : 'Municipality'}
+          </label>
           <select
             value={municipality?.swis || ''}
             onChange={e => {
               const m = municipalities.find(m => m.swis === e.target.value);
               if (m) onMunicipalityChange(m);
             }}
-            disabled={!county || !municipalities.length}
+            disabled={!isNY || !county || !municipalities.length}
             className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-slate-100 disabled:text-slate-400"
           >
-            <option value="">— Select town —</option>
+            <option value="">{isNY && county ? '— Select town —' : '— N/A for this state —'}</option>
             {municipalities.map(m => (
               <option key={m.swis} value={m.swis}>{m.name}</option>
             ))}
@@ -126,6 +158,16 @@ export default function LocationSelector({
       {municipality && (
         <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
           <strong>{municipality.name}</strong> selected. Proceed to enter your property address below.
+        </div>
+      )}
+      {isTX && selectedTxCountyInfo?.dataStatus === 'full' && (
+        <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
+          <strong>{txCounty} County</strong> selected. Proceed to enter your property address below.
+        </div>
+      )}
+      {isTX && selectedTxCountyInfo?.dataStatus === 'coming_soon' && (
+        <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+          Parcel data for <strong>{txCounty} County</strong> is coming soon. See the protest info above and use your county CAD's website to look up your appraisal.
         </div>
       )}
     </div>

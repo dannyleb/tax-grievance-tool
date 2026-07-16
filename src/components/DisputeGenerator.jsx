@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { generateDisputeStatement, hasApiKey } from '../utils/generateDispute';
 
-export default function DisputeGenerator({ parcel, municipality, analysis, subjectTax, comps, canGenerate }) {
+export default function DisputeGenerator({ parcel, municipality, analysis, subjectTax, comps, canGenerate, stateInfo }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [text, setText] = useState('');

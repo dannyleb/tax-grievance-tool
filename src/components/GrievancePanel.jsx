@@ -6,7 +6,9 @@ function fmt(n) {
   return n ? `$${Math.round(n).toLocaleString()}` : 'N/A';
 }
 
-export default function GrievancePanel({ parcel, municipality, analysis, comps, subjectTax }) {
+export default function GrievancePanel({ parcel, municipality, analysis, comps, subjectTax, stateInfo }) {
+  const isTX = stateInfo?.abbr === 'TX';
+
   const grievanceDay = getGrievanceDay();
   const nextYear = getGrievanceDay(new Date().getFullYear() + 1);
   const today = new Date();
@@ -16,9 +18,145 @@ export default function GrievancePanel({ parcel, municipality, analysis, comps, 
   const rp524Url = 'https://www.tax.ny.gov/pdf/current_forms/orpts/rp524_fill_in.pdf';
   const scarUrl = 'https://www.nycourts.gov/small-claims-assessment-review-scar';
   const halfmoonGrievanceUrl = 'https://www.townofhalfmoon-ny.gov/grievance';
+  const txProtestUrl = 'https://comptroller.texas.gov/taxes/property-tax/protest/';
+  const txForm50132Url = 'https://comptroller.texas.gov/forms/50-132.pdf';
 
   function formatDate(d) {
     return d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  }
+
+  // ── Texas protest panel ──────────────────────────────────────────────────
+  if (isTX) {
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="flex items-center justify-center w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full">5</span>
+          <h2 className="text-lg font-semibold text-slate-800">Protest Guide (Texas ARB)</h2>
+        </div>
+
+        {/* Deadline banner */}
+        <div className="rounded-lg p-4 mb-5 bg-blue-50 border border-blue-200">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 mt-0.5 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <div>
+              <div className="font-semibold text-slate-800">Filing Deadline</div>
+              <div className="text-sm text-slate-600 mt-0.5"><strong>May 15</strong>, or 30 days after your Notice of Appraised Value is mailed — whichever is later.</div>
+              <div className="text-xs text-slate-500 mt-1">Check the date on your notice. If you didn't receive one, contact your county CAD.</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Verdict */}
+        {analysis.hasCase && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-5">
+            <div className="font-semibold text-red-800 mb-1">You likely have grounds for an equal-and-uniform protest</div>
+            <p className="text-sm text-red-700">
+              Your property is appraised at <strong>${analysis.subjectRatio?.toFixed(2)}/sqft</strong>, which is{' '}
+              <strong>{analysis.overassessmentPct.toFixed(1)}% higher</strong> than the median comparable property
+              in your neighborhood (${analysis.medianCompRatio?.toFixed(2)}/sqft).
+              Under Texas Property Tax Code §41.43, you can protest claiming <em>unequal appraisal</em>.
+            </p>
+            {analysis.potentialSavings > 0 && (
+              <div className="mt-2 text-sm font-medium text-red-800">
+                Estimated annual tax savings if successful: ~{fmt(analysis.potentialSavings)}
+              </div>
+            )}
+          </div>
+        )}
+
+        {analysis.borderline && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-5">
+            <div className="font-semibold text-yellow-800 mb-1">Borderline — gather more evidence</div>
+            <p className="text-sm text-yellow-700">
+              Your $/sqft is slightly above the median but within a typical 5% tolerance.
+              Consider getting a private appraisal or comparing more recent sales in your neighborhood to strengthen your case.
+            </p>
+          </div>
+        )}
+
+        {/* AI Dispute Generator */}
+        <div className="bg-purple-50 border border-purple-200 rounded-xl p-5 mb-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="flex-1">
+              <div className="font-semibold text-purple-900 mb-1">Generate AI Protest Statement</div>
+              <p className="text-sm text-purple-700">
+                Draft a formal written argument for your ARB hearing based on your appraisal data and comparable properties.
+              </p>
+            </div>
+            <div className="shrink-0">
+              <DisputeGenerator
+                parcel={parcel}
+                municipality={municipality}
+                analysis={analysis}
+                subjectTax={subjectTax}
+                comps={comps}
+                canGenerate={analysis.hasCase || analysis.borderline}
+                stateInfo={stateInfo}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Steps */}
+        <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Protest Steps</h3>
+        <div className="space-y-3 mb-6">
+          <Step n={1} title="File Form 50-132 (Notice of Protest)">
+            Submit to your County Appraisal District by the deadline. You can file online, by mail, or in person.
+            <div className="mt-1.5">
+              <a href={txForm50132Url} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm font-medium underline">
+                Download Form 50-132 (PDF) →
+              </a>
+            </div>
+          </Step>
+          <Step n={2} title="Gather your evidence">
+            Print the comparable properties table above. Highlight homes with lower $/sqft appraisals.
+            Recent sale prices or a private appraisal can also support your case.
+          </Step>
+          <Step n={3} title="Informal hearing (optional but recommended)">
+            Most CADs offer an informal meeting with an appraiser before your formal ARB hearing.
+            Often the fastest path to a reduction — bring your comps.
+          </Step>
+          <Step n={4} title="Formal ARB hearing">
+            Present your evidence to the Appraisal Review Board (3 citizen members).
+            You may appear in person, by affidavit, or by telephone. No attorney required.
+          </Step>
+          <Step n={5} title="If denied — binding arbitration or district court">
+            For properties ≤ $5M: file for binding arbitration (~$450 fee, refunded if you win).
+            For larger properties or as alternative: file suit in district court.
+            <div className="mt-1.5">
+              <a href={txProtestUrl} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm font-medium underline">
+                TX Comptroller ARB Protest Guide →
+              </a>
+            </div>
+          </Step>
+        </div>
+
+        {/* Pre-fill reference */}
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+          <div className="text-sm font-semibold text-slate-700 mb-2">Form 50-132 Reference Data</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
+            <Field label="Property Address" value={parcel.address} />
+            <Field label="County" value={parcel.county + ' County'} />
+            <Field label="Property ID / Account" value={parcel.printKey} />
+            <Field label="Property Class" value={`${parcel.propertyClass} — ${parcel.propertyClassDesc}`} />
+            <Field label="Appraised Value" value={fmt(parcel.assessmentTotal)} />
+            <Field label="Your Proposed Value" value="Enter your estimate based on comps" placeholder />
+          </div>
+          <div className="mt-3 text-xs text-slate-400">
+            Select protest reason: <em>"Value is over market value"</em> and/or <em>"Value is unequal compared with other properties."</em>
+          </div>
+        </div>
+
+        <div className="mt-4 text-xs text-slate-400 text-center">
+          This tool provides information only and does not constitute legal advice.
+          Consult a property tax consultant or attorney for complex cases.
+        </div>
+      </div>
+    );
   }
 
   return (

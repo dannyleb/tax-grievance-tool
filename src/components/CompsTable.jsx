@@ -4,9 +4,10 @@ function fmt(n) {
   return n ? `$${Math.round(n).toLocaleString()}` : 'N/A';
 }
 
-export default function CompsTable({ subject, comps, analysis, taxRates }) {
-  const subjectRatio = analysis.subjectRatio;
-  const hasTaxRates = taxRates && taxRates.length > 0;
+export default function CompsTable({ subject, comps, analysis, taxRates, stateAbbr }) {
+  const isTX = stateAbbr === 'TX';
+  const subjectRatio = analysis.subjectRatio; // $/sqft for TX, assessment ratio for NY
+  const hasTaxRates = !isTX && taxRates && taxRates.length > 0;
 
   // Pre-compute estimated tax for each comp using same rate set
   // (county + municipal rates are the same for all parcels in this SWIS;
@@ -27,10 +28,12 @@ export default function CompsTable({ subject, comps, analysis, taxRates }) {
         <h2 className="text-lg font-semibold text-slate-800">Comparable Properties</h2>
       </div>
       <p className="text-sm text-slate-500 mb-4">
-        {comps.length} similar homes in {subject.municipality} (same property class, ±25% market value).
+        {comps.length} similar homes in {subject.municipality}
+        {isTX ? ' (same property class & neighborhood, ±30% sqft)' : ' (same property class, ±25% market value)'}.
         {analysis.underassessedComps.length > 0 && (
           <span className="text-red-600 font-medium ml-1">
-            {analysis.underassessedComps.length} are assessed at a lower rate than your property — flagged in red.
+            {analysis.underassessedComps.length}{' '}
+            {isTX ? 'have a lower appraised $/sqft than your property' : 'are assessed at a lower rate than your property'} — flagged in red.
           </span>
         )}
       </p>
@@ -40,9 +43,9 @@ export default function CompsTable({ subject, comps, analysis, taxRates }) {
           <thead>
             <tr className="border-b border-slate-200">
               <th className="text-left py-2 px-3 font-semibold text-slate-600">Address</th>
-              <th className="text-right py-2 px-3 font-semibold text-slate-600">Assessment</th>
-              <th className="text-right py-2 px-3 font-semibold text-slate-600">Market Value</th>
-              <th className="text-right py-2 px-3 font-semibold text-slate-600">Assess. Ratio</th>
+              <th className="text-right py-2 px-3 font-semibold text-slate-600">{isTX ? 'Appraised Value' : 'Assessment'}</th>
+              <th className="text-right py-2 px-3 font-semibold text-slate-600">{isTX ? 'SqFt' : 'Market Value'}</th>
+              <th className="text-right py-2 px-3 font-semibold text-slate-600">{isTX ? '$/SqFt' : 'Assess. Ratio'}</th>
               <th className="text-right py-2 px-3 font-semibold text-slate-600">vs. Yours</th>
               {hasTaxRates && (
                 <th className="text-right py-2 px-3 font-semibold text-amber-700">
@@ -59,9 +62,15 @@ export default function CompsTable({ subject, comps, analysis, taxRates }) {
                 <span className="ml-2 text-xs bg-blue-200 text-blue-700 px-1.5 py-0.5 rounded">YOUR HOME</span>
               </td>
               <td className="py-2 px-3 text-right text-blue-800">{fmt(subject.assessmentTotal)}</td>
-              <td className="py-2 px-3 text-right text-blue-800">{fmt(subject.fullMarketValue)}</td>
               <td className="py-2 px-3 text-right text-blue-800">
-                {(subjectRatio * 100).toFixed(1)}%
+                {isTX
+                  ? (subject.buildingSqft > 0 ? subject.buildingSqft.toLocaleString() : '—')
+                  : fmt(subject.fullMarketValue)}
+              </td>
+              <td className="py-2 px-3 text-right text-blue-800">
+                {isTX
+                  ? (subjectRatio != null ? `$${subjectRatio.toFixed(2)}` : '—')
+                  : `${(subjectRatio * 100).toFixed(1)}%`}
               </td>
               <td className="py-2 px-3 text-right text-blue-800">—</td>
               {hasTaxRates && (
@@ -90,9 +99,15 @@ export default function CompsTable({ subject, comps, analysis, taxRates }) {
                     )}
                   </td>
                   <td className="py-2 px-3 text-right text-slate-700">{fmt(comp.assessmentTotal)}</td>
-                  <td className="py-2 px-3 text-right text-slate-700">{fmt(comp.fullMarketValue)}</td>
+                  <td className="py-2 px-3 text-right text-slate-700">
+                    {isTX
+                      ? (comp.buildingSqft > 0 ? comp.buildingSqft.toLocaleString() : '—')
+                      : fmt(comp.fullMarketValue)}
+                  </td>
                   <td className={`py-2 px-3 text-right font-medium ${flagged ? 'text-red-600' : 'text-slate-700'}`}>
-                    {(comp.assessmentRatio * 100).toFixed(1)}%
+                    {isTX
+                      ? (comp.assessmentRatio != null ? `$${comp.assessmentRatio.toFixed(2)}` : '—')
+                      : `${(comp.assessmentRatio * 100).toFixed(1)}%`}
                   </td>
                   <td className={`py-2 px-3 text-right ${flagged ? 'text-red-600 font-medium' : 'text-slate-500'}`}>
                     {flagged
@@ -118,11 +133,14 @@ export default function CompsTable({ subject, comps, analysis, taxRates }) {
       </div>
 
       <div className="mt-4 p-3 bg-slate-50 rounded-lg text-xs text-slate-500">
-        <strong>Assessment Ratio</strong> = Total Assessment ÷ Full Market Value. If comparable homes have a lower ratio, they pay less tax per dollar of market value — a key basis for a grievance complaint.
+        {isTX ? (
+          <><strong>$/SqFt</strong> = Appraised Value ÷ Building SqFt. Under TX Property Tax Code §41.43, if comparable homes are appraised at a lower $/sqft, you may be entitled to an equal-and-uniform reduction — a key basis for an ARB protest.</>
+        ) : (
+          <><strong>Assessment Ratio</strong> = Total Assessment ÷ Full Market Value. If comparable homes have a lower ratio, they pay less tax per dollar of market value — a key basis for a grievance complaint.</>
+        )}
         {hasTaxRates && (
           <span className="ml-2">
             <strong>Est. Tax</strong> = county + town + school rates × full market value, sourced from NYS Real Property Tax Rates dataset.
-            School rate matched by district when possible, otherwise median rate used.
           </span>
         )}
       </div>
