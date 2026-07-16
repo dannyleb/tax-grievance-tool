@@ -10,6 +10,7 @@ import TownStatsPanel from './components/TownStatsPanel';
 import { searchByAddress, getComparables, normalizeParcel, analyzeOverassessment, getTaxRates, calcEstimatedTax } from './api/orpts';
 import { txSearchByAddress, txGetComparables, normalizeTxParcel, analyzeTxAppraisal } from './api/tx';
 import { getMunicipalities } from './data/swis';
+import { TX_COUNTY_MAP } from './data/tx-counties';
 
 export default function App() {
   const [selectedState, setSelectedState] = useState(null);
@@ -55,7 +56,9 @@ export default function App() {
   function handleTxCountyChange(c) {
     setTxCounty(c);
     resetParcelState();
-    setStep(c ? 2 : 1);
+    // Only advance to address search step if this county has live parcel data
+    const hasData = c && TX_COUNTY_MAP[c]?.dataStatus === 'full';
+    setStep(hasData ? 2 : 1);
   }
 
   function handleMunicipalityChange(m) {
@@ -186,7 +189,7 @@ export default function App() {
   function handleReset() {
     resetParcelState();
     if (selectedState?.abbr === 'TX') {
-      setStep(txCounty ? 2 : 1);
+      setStep(txCountyHasData ? 2 : 1);
     } else {
       setStep(municipality ? 2 : 1);
     }
@@ -194,8 +197,9 @@ export default function App() {
 
   const isTX = selectedState?.abbr === 'TX';
   const isNY = selectedState?.abbr === 'NY';
+  const txCountyHasData = isTX && txCounty && TX_COUNTY_MAP[txCounty]?.dataStatus === 'full';
   const showAddressSearch = isTX
-    ? (step >= 2 && txCounty)
+    ? (step >= 2 && txCountyHasData)
     : (step >= 2 && municipality);
 
   // For TX, municipality-equivalent is the txCounty selection
