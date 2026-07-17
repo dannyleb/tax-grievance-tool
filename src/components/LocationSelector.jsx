@@ -3,14 +3,19 @@ import { STATES } from '../data/states';
 import { TX_COUNTIES } from '../data/tx-counties';
 
 export default function LocationSelector({
-  selectedState, county, municipality, txCounty,
-  onStateChange, onCountyChange, onMunicipalityChange, onTxCountyChange,
+  selectedState, county, municipality, stateCounty,
+  onStateChange, onCountyChange, onMunicipalityChange, onStateCountyChange,
   municipalities,
 }) {
   const stateInfo = selectedState;
   const isNY = selectedState?.abbr === 'NY';
   const isTX = selectedState?.abbr === 'TX';
-  const selectedTxCountyInfo = txCounty ? TX_COUNTIES.find(c => c.name === txCounty) : null;
+  // States that use a county dropdown from their own counties array (IL, WA) or TX_COUNTIES
+  const isCountyState = isTX || selectedState?.counties?.length > 0;
+  const countyList = isTX ? TX_COUNTIES : (selectedState?.counties || []);
+  const selectedCountyInfo = stateCounty
+    ? countyList.find(c => c.name === stateCounty)
+    : null;
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-6">
@@ -52,14 +57,14 @@ export default function LocationSelector({
                 <option key={c} value={c}>{c} County</option>
               ))}
             </select>
-          ) : isTX ? (
+          ) : isCountyState ? (
             <select
-              value={txCounty || ''}
-              onChange={e => onTxCountyChange(e.target.value || null)}
+              value={stateCounty || ''}
+              onChange={e => onStateCountyChange(e.target.value || null)}
               className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">— Select county —</option>
-              {TX_COUNTIES.map(c => (
+              {countyList.map(c => (
                 <option key={c.name} value={c.name}>
                   {c.name} County{c.dataStatus === 'full' ? ' ✓' : ''}
                 </option>
@@ -73,10 +78,11 @@ export default function LocationSelector({
               <option>— Select state first —</option>
             </select>
           )}
-          {isTX && selectedTxCountyInfo && (
+          {isCountyState && selectedCountyInfo && (
             <p className="mt-1 text-xs text-slate-400">
-              {selectedTxCountyInfo.cad}
-              {selectedTxCountyInfo.dataStatus === 'full'
+              {selectedCountyInfo.cad || selectedCountyInfo.cadName}
+              {selectedCountyInfo.area ? ` — ${selectedCountyInfo.area}` : ''}
+              {selectedCountyInfo.dataStatus === 'full'
                 ? ' — parcel search available'
                 : ' — parcel data coming soon'}
             </p>
@@ -112,13 +118,15 @@ export default function LocationSelector({
 
       {/* Appeal process info for all states */}
       {stateInfo && (
-        <div className={`mt-4 rounded-lg p-4 border ${stateInfo.dataStatus === 'full' ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
+        <div className={`mt-4 rounded-lg p-4 border ${stateInfo.dataStatus === 'full' ? 'bg-green-50 border-green-200' : stateInfo.dataStatus === 'partial' ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 border-blue-200'}`}>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="font-semibold text-slate-800">{stateInfo.name} — {stateInfo.appealName}</span>
                 {stateInfo.dataStatus === 'full'
                   ? <span className="text-xs font-medium bg-green-600 text-white px-2 py-0.5 rounded-full">Full data support</span>
+                  : stateInfo.dataStatus === 'partial'
+                  ? <span className="text-xs font-medium bg-yellow-500 text-white px-2 py-0.5 rounded-full">Partial county coverage</span>
                   : <span className="text-xs font-medium bg-blue-500 text-white px-2 py-0.5 rounded-full">Parcel data coming soon</span>
                 }
               </div>
@@ -146,10 +154,14 @@ export default function LocationSelector({
             </a>
           </div>
 
-          {stateInfo.dataStatus !== 'full' && (
+          {stateInfo.dataStatus === 'coming_soon' && (
             <div className="mt-3 pt-3 border-t border-blue-200 text-xs text-blue-700">
-              Parcel lookup and comparable analysis is currently available for <strong>New York</strong> only.
-              Additional states are being integrated. In the meantime, use your state's official resources above to file your appeal.
+              Parcel lookup is not yet available for this state. Use your state's official resources above to file your appeal.
+            </div>
+          )}
+          {stateInfo.dataStatus === 'partial' && !stateCounty && (
+            <div className="mt-3 pt-3 border-t border-blue-200 text-xs text-blue-700">
+              Parcel lookup is available for select counties. Choose a county above to get started.
             </div>
           )}
         </div>
@@ -160,14 +172,14 @@ export default function LocationSelector({
           <strong>{municipality.name}</strong> selected. Proceed to enter your property address below.
         </div>
       )}
-      {isTX && selectedTxCountyInfo?.dataStatus === 'full' && (
+      {isCountyState && selectedCountyInfo?.dataStatus === 'full' && (
         <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
-          <strong>{txCounty} County</strong> selected. Proceed to enter your property address below.
+          <strong>{stateCounty} County</strong> selected. Proceed to enter your property address below.
         </div>
       )}
-      {isTX && selectedTxCountyInfo?.dataStatus === 'coming_soon' && (
+      {isCountyState && selectedCountyInfo?.dataStatus === 'coming_soon' && (
         <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
-          Parcel data for <strong>{txCounty} County</strong> is coming soon. See the protest info above and use your county CAD's website to look up your appraisal.
+          Parcel data for <strong>{stateCounty} County</strong> is coming soon. See the protest info above and use your county CAD's website to look up your appraisal.
         </div>
       )}
     </div>

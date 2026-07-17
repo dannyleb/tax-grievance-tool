@@ -9,13 +9,15 @@ import ParcelMap from './components/ParcelMap';
 import TownStatsPanel from './components/TownStatsPanel';
 import { searchByAddress, getComparables, normalizeParcel, analyzeOverassessment, getTaxRates, calcEstimatedTax } from './api/orpts';
 import { txSearchByAddress, txGetComparables, normalizeTxParcel, analyzeTxAppraisal } from './api/tx';
+import { cookSearchByAddress, cookGetComparables, normalizeCookParcel } from './api/cook';
+import { kingSearchByAddress, kingGetComparables, normalizeKingParcel } from './api/king';
 import { getMunicipalities } from './data/swis';
 import { TX_COUNTY_MAP } from './data/tx-counties';
 
 export default function App() {
   const [selectedState, setSelectedState] = useState(null);
-  const [county, setCounty] = useState('');      // NY county name
-  const [txCounty, setTxCounty] = useState(null); // TX county name
+  const [county, setCounty] = useState('');        // NY county name
+  const [stateCounty, setStateCounty] = useState(null); // TX/IL/WA county name
   const [municipality, setMunicipality] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const [selectedParcel, setSelectedParcel] = useState(null);
@@ -40,7 +42,7 @@ export default function App() {
   function handleStateChange(s) {
     setSelectedState(s);
     setCounty('');
-    setTxCounty(null);
+    setStateCounty(null);
     setMunicipality(null);
     resetParcelState();
     setStep(1);
@@ -53,11 +55,15 @@ export default function App() {
     setStep(1);
   }
 
-  function handleTxCountyChange(c) {
-    setTxCounty(c);
+  function handleStateCountyChange(c) {
+    setStateCounty(c);
     resetParcelState();
-    // Only advance to address search step if this county has live parcel data
-    const hasData = c && TX_COUNTY_MAP[c]?.dataStatus === 'full';
+    const abbr = selectedState?.abbr;
+    let hasData = false;
+    if (abbr === 'TX') hasData = c && TX_COUNTY_MAP[c]?.dataStatus === 'full';
+    else if (abbr === 'IL' || abbr === 'WA') {
+      hasData = c && selectedState.counties?.find(x => x.name === c)?.dataStatus === 'full';
+    }
     setStep(hasData ? 2 : 1);
   }
 
@@ -77,11 +83,11 @@ export default function App() {
     setAnalysis(null);
 
     try {
-      if (selectedState?.abbr === 'TX') {
-        await handleTxSearch(address);
-      } else {
-        await handleNySearch(address);
-      }
+      const abbr = selectedState?.abbr;
+      if (abbr === 'TX') await handleTxSearch(address);
+      else if (abbr === 'IL') await handleILSearch(address);
+      else if (abbr === 'WA') await handleWASearch(address);
+      else await handleNySearch(address);
     } finally {
       setLoading(false);
     }
@@ -110,21 +116,52 @@ export default function App() {
 
   async function handleTxSearch(address) {
     try {
-      const raw = await txSearchByAddress({ county: txCounty, streetAddress: address });
+      const raw = await txSearchByAddress({ county: stateCounty, streetAddress: address });
       if (!raw.length) {
         setError('No parcels found. Try a partial street name (e.g. "Main" instead of "123 Main St").');
         return;
       }
-      const normalized = raw.map(r => normalizeTxParcel(r, txCounty));
+      const normalized = raw.map(r => normalizeTxParcel(r, stateCounty));
       setSearchResults(normalized);
       setStep(3);
       if (normalized.length === 1) await doSelectTxParcel(normalized[0]);
     } catch (e) {
       if (e.message === 'UNSUPPORTED_COUNTY') {
-        setError(`Parcel data for ${txCounty} County is not yet available. Check back soon.`);
+        setError(`Parcel data for ${stateCounty} County is not yet available. Check back soon.`);
       } else {
         setError('Error connecting to the Texas appraisal database. Please try again.');
       }
+    }
+  }
+
+  async function handleILSearch(address) {
+    try {
+      const results = await cookSearchByAddress({ streetAddress: address });
+      if (!results.length) {
+        setError('No parcels found. Try a partial street name (e.g. "Main" instead of "123 Main St").');
+        return;
+      }
+      setSearchResults(results);
+      setStep(3);
+      if (results.length === 1) await doSelectILParcel(results[0]);
+    } catch {
+      setError('Error connecting to the Cook County assessor database. Please try again.');
+    }
+  }
+
+  async function handleWASearch(address) {
+    try {
+      const raw = await kingSearchByAddress({ streetAddress: address });
+      if (!raw.length) {
+        setError('No parcels found. Try a partial street name (e.g. "Main" instead of "123 Main St").');
+        return;
+      }
+      const results = raw.map(normalizeKingParcel);
+      setSearchResults(results);
+      setStep(3);
+      if (results.length === 1) await doSelectWAParcel(results[0]);
+    } catch {
+      setError('Error connecting to the King County assessor database. Please try again.');
     }
   }
 
@@ -158,14 +195,61 @@ export default function App() {
     setLoading(true); setError('');
     try {
       const rawComps = await txGetComparables({
-        county: txCounty,
+        county: stateCounty,
         propid: parcel.printKey,
         propcategorycode: parcel.propertyClass,
         nbhdcode: parcel.neighborhoodCode,
         buildingSqft: parcel.buildingSqft,
         limit: 30,
       });
-      const normalized = rawComps.map(r => normalizeTxParcel(r, txCounty));
+      const normalized = rawComps.map(r => normalizeTxParcel(r, stateCounty));
+      setComps(normalized);
+      setAnalysis(analyzeTxAppraisal(parcel, normalized));
+      setStep(4);
+    } catch {
+      setError('Error fetching comparable properties. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── IL parcel selection ────────────────────────────────────────────────────
+  async function doSelectILParcel(parcel) {
+    setSelectedParcel(parcel);
+    setComps([]); setAnalysis(null); setTaxRates([]); setSubjectTax(null);
+    setLoading(true); setError('');
+    try {
+      const rawComps = await cookGetComparables({
+        pin: parcel.printKey,
+        nbhd: parcel.neighborhoodCode,
+        cls: parcel.propertyClass,
+        buildingSqft: parcel.buildingSqft,
+        limit: 30,
+      });
+      setComps(rawComps);
+      setAnalysis(analyzeTxAppraisal(parcel, rawComps));
+      setStep(4);
+    } catch {
+      setError('Error fetching comparable properties. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── WA parcel selection ────────────────────────────────────────────────────
+  async function doSelectWAParcel(parcel) {
+    setSelectedParcel(parcel);
+    setComps([]); setAnalysis(null); setTaxRates([]); setSubjectTax(null);
+    setLoading(true); setError('');
+    try {
+      const rawComps = await kingGetComparables({
+        pin: parcel.printKey,
+        preuseCode: parcel.propertyClass,
+        city: parcel.neighborhoodCode,
+        lotSqft: parcel.buildingSqft,
+        limit: 30,
+      });
+      const normalized = rawComps.map(normalizeKingParcel);
       setComps(normalized);
       setAnalysis(analyzeTxAppraisal(parcel, normalized));
       setStep(4);
@@ -177,35 +261,43 @@ export default function App() {
   }
 
   async function handleSelectParcel(parcel) {
-    if (selectedState?.abbr === 'TX') {
-      setLoading(true);
-      await doSelectTxParcel(parcel);
-    } else {
-      setLoading(true);
-      await doSelectNyParcel(parcel);
-    }
+    setLoading(true);
+    const abbr = selectedState?.abbr;
+    if (abbr === 'TX') await doSelectTxParcel(parcel);
+    else if (abbr === 'IL') await doSelectILParcel(parcel);
+    else if (abbr === 'WA') await doSelectWAParcel(parcel);
+    else await doSelectNyParcel(parcel);
   }
 
   function handleReset() {
     resetParcelState();
-    if (selectedState?.abbr === 'TX') {
-      setStep(txCountyHasData ? 2 : 1);
-    } else {
-      setStep(municipality ? 2 : 1);
-    }
+    const abbr = selectedState?.abbr;
+    if (abbr === 'NY') setStep(municipality ? 2 : 1);
+    else setStep(stateCountyHasData ? 2 : 1);
   }
 
   const isTX = selectedState?.abbr === 'TX';
+  const isIL = selectedState?.abbr === 'IL';
+  const isWA = selectedState?.abbr === 'WA';
   const isNY = selectedState?.abbr === 'NY';
-  const txCountyHasData = isTX && txCounty && TX_COUNTY_MAP[txCounty]?.dataStatus === 'full';
-  const showAddressSearch = isTX
-    ? (step >= 2 && txCountyHasData)
+  const isCountyState = isTX || isIL || isWA;
+
+  const stateCountyHasData = isCountyState && stateCounty && (() => {
+    if (isTX) return TX_COUNTY_MAP[stateCounty]?.dataStatus === 'full';
+    return selectedState.counties?.find(x => x.name === stateCounty)?.dataStatus === 'full';
+  })();
+
+  const showAddressSearch = isCountyState
+    ? (step >= 2 && stateCountyHasData)
     : (step >= 2 && municipality);
 
-  // For TX, municipality-equivalent is the txCounty selection
-  const effectiveMunicipality = isTX
-    ? (txCounty ? { name: txCounty + ' County, TX', swis: null, equalizationRate: 1.0 } : null)
-    : municipality;
+  const effectiveMunicipality = (() => {
+    if (isNY) return municipality;
+    if (isTX) return stateCounty ? { name: stateCounty + ' County, TX', swis: null, equalizationRate: 1.0 } : null;
+    if (isIL) return stateCounty ? { name: stateCounty + ' County, IL', swis: null, equalizationRate: 1.0 } : null;
+    if (isWA) return stateCounty ? { name: stateCounty + ' County, WA', swis: null, equalizationRate: 1.0 } : null;
+    return null;
+  })();
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -216,11 +308,11 @@ export default function App() {
           selectedState={selectedState}
           county={county}
           municipality={municipality}
-          txCounty={txCounty}
+          stateCounty={stateCounty}
           onStateChange={handleStateChange}
           onCountyChange={handleCountyChange}
           onMunicipalityChange={handleMunicipalityChange}
-          onTxCountyChange={handleTxCountyChange}
+          onStateCountyChange={handleStateCountyChange}
           municipalities={isNY && county ? getMunicipalities(county) : []}
         />
 
@@ -244,7 +336,9 @@ export default function App() {
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
             <span className="ml-3 text-slate-600">
-              {isTX ? `Querying ${txCounty} County appraisal database...` : 'Querying NY assessment database...'}
+              {isCountyState
+                ? `Querying ${stateCounty} County appraisal database...`
+                : 'Querying NY assessment database...'}
             </span>
           </div>
         )}
@@ -265,8 +359,8 @@ export default function App() {
                   <div className="font-medium text-slate-800">{p.address}</div>
                   <div className="text-sm text-slate-500">
                     Owner: {p.ownerName || 'N/A'} &middot; Class: {p.propertyClass} ({p.propertyClassDesc})
-                    &middot; {isTX ? 'Appraised' : 'Assessed'}: ${p.assessmentTotal.toLocaleString()}
-                    {isTX && p.buildingSqft > 0 && ` · ${p.buildingSqft.toLocaleString()} sqft`}
+                    &middot; {isNY ? 'Assessed' : 'Appraised'}: ${p.assessmentTotal.toLocaleString()}
+                    {isCountyState && p.buildingSqft > 0 && ` · ${p.buildingSqft.toLocaleString()} ${isWA ? 'lot' : ''} sqft`}
                   </div>
                 </button>
               ))}
@@ -277,7 +371,7 @@ export default function App() {
         {selectedParcel && !loading && (
           <ParcelCard
             parcel={selectedParcel}
-            equalizationRate={isTX ? 1.0 : municipality?.equalizationRate}
+            equalizationRate={isNY ? municipality?.equalizationRate : 1.0}
             analysis={analysis}
             subjectTax={subjectTax}
             stateAbbr={selectedState?.abbr}
@@ -298,7 +392,7 @@ export default function App() {
           <ParcelMap parcel={selectedParcel} comps={analysis?.compRatios || []} />
         )}
 
-        {step === 4 && !loading && !isTX && (
+        {step === 4 && !loading && isNY && (
           <TownStatsPanel parcel={selectedParcel} municipality={municipality} />
         )}
 
@@ -324,12 +418,26 @@ export default function App() {
           </>
         ) : isTX ? (
           <>
-            {txCounty === 'Bexar'
+            {stateCounty === 'Bexar'
               ? <>Bexar County data sourced from <a href="https://maps.bexar.org" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">BCAD ArcGIS</a> (Bexar Appraisal District)</>
               : <>Collin County data sourced from <a href="https://data.texas.gov" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">data.texas.gov</a> (Collin Central Appraisal District)</>
             }
             {' '}&middot;{' '}
             <a href="https://comptroller.texas.gov/taxes/property-tax/protest/" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">TX ARB Protest Info</a>
+          </>
+        ) : isIL ? (
+          <>
+            Cook County data sourced from{' '}
+            <a href="https://datacatalog.cookcountyil.gov" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">Cook County Open Data</a>
+            {' ('}Assessor's Office{') '}&middot;{' '}
+            <a href="https://www.cookcountyassessor.com/residential-appeals" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">IL Appeal Info</a>
+          </>
+        ) : isWA ? (
+          <>
+            King County data sourced from{' '}
+            <a href="https://gismaps.kingcounty.gov" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">King County GIS</a>
+            {' '}&middot;{' '}
+            <a href="https://www.kingcounty.gov/en/dept/assessor/buildings-and-your-property/appeal-your-property-value" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">WA Appeal Info</a>
           </>
         ) : (
           'Property tax appeal data compiled from official state sources.'

@@ -1,0 +1,7 @@
+name = "tax-grievance-proxy"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# Optional: restrict to your GitHub Pages domain only
+# [triggers]
+# routes = ["tax-grievance-proxy.YOUR_SUBDOMAIN.workers.dev/*"]

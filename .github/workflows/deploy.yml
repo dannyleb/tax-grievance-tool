@@ -29,6 +29,7 @@ jobs:
       - run: npm run build
         env:
           VITE_ANTHROPIC_API_KEY: ${{ secrets.TAX_GRIEVANCE_TOOL }}
+          VITE_PROXY_URL: ${{ secrets.PROXY_URL }}
 
       - uses: actions/upload-pages-artifact@v3
         with:

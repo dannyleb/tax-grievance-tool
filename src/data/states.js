@@ -106,7 +106,10 @@ export const STATES = [
     body: 'County Board of Review',
     deadline: '30 days from publication of assessment (varies by county)',
     infoUrl: 'https://tax.illinois.gov/research/legalinformation/regs/part110.html',
-    dataStatus: 'coming_soon',
+    dataStatus: 'partial',
+    counties: [
+      { name: 'Cook', cadName: 'Cook County Assessor', area: 'Chicago & Suburbs', dataStatus: 'full' },
+    ],
   },
   {
     abbr: 'IN', name: 'Indiana',
@@ -381,7 +384,10 @@ export const STATES = [
     body: 'County Board of Equalization',
     deadline: 'July 1 or 30 days after value notice, whichever is later',
     infoUrl: 'https://dor.wa.gov/find-taxes-rates/property-tax/property-tax-assessment-appeals',
-    dataStatus: 'coming_soon',
+    dataStatus: 'partial',
+    counties: [
+      { name: 'King', cadName: 'King County Assessor', area: 'Seattle & Surroundings', dataStatus: 'full' },
+    ],
   },
   {
     abbr: 'WV', name: 'West Virginia',
