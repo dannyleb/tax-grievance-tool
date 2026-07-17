@@ -10,15 +10,20 @@ const ALLOWED_DOMAINS = new Set([
   // Texas
   'data.texas.gov',
   'maps.bexar.org',
-  // Florida
+  // Florida (statewide cadastral on ArcGIS Online)
+  'services9.arcgis.com',
   'gis.fdot.gov',
   'geodata.floridagio.gov',
+  // Pennsylvania (Philadelphia OPA on ArcGIS Online)
+  'services.arcgis.com',
   'services1.arcgis.com',
   'services2.arcgis.com',
   'services3.arcgis.com',
   'services5.arcgis.com',
   'services6.arcgis.com',
   'services7.arcgis.com',
+  // Allegheny County PA (WPRDC CKAN)
+  'data.wprdc.org',
   // Illinois
   'datacatalog.cookcountyil.gov',
   'gis.cookcountyil.gov',

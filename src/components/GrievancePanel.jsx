@@ -10,6 +10,8 @@ export default function GrievancePanel({ parcel, municipality, analysis, comps, 
   const isTX = stateInfo?.abbr === 'TX';
   const isIL = stateInfo?.abbr === 'IL';
   const isWA = stateInfo?.abbr === 'WA';
+  const isFL = stateInfo?.abbr === 'FL';
+  const isPA = stateInfo?.abbr === 'PA';
 
   const grievanceDay = getGrievanceDay();
   const nextYear = getGrievanceDay(new Date().getFullYear() + 1);
@@ -286,6 +288,259 @@ export default function GrievancePanel({ parcel, municipality, analysis, comps, 
         <div className="mt-4 text-xs text-slate-400 text-center">
           This tool provides information only and does not constitute legal advice.
           Consult a property tax attorney or certified assessor for complex cases.
+        </div>
+      </div>
+    );
+  }
+
+  // ── Florida VAB panel ────────────────────────────────────────────────────
+  if (isFL) {
+    const vabUrl   = 'https://floridarevenue.com/property/Pages/Taxpayers_VAB.aspx';
+    const dr486Url = 'https://floridarevenue.com/property/Documents/dr486.pdf';
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="flex items-center justify-center w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full">5</span>
+          <h2 className="text-lg font-semibold text-slate-800">Appeal Guide (Florida Value Adjustment Board)</h2>
+        </div>
+
+        <div className="rounded-lg p-4 mb-5 bg-blue-50 border border-blue-200">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 mt-0.5 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <div>
+              <div className="font-semibold text-slate-800">Filing Deadline</div>
+              <div className="text-sm text-slate-600 mt-0.5">
+                <strong>September 18</strong> or within <strong>25 days of your TRIM notice</strong> — whichever is later.
+              </div>
+              <div className="text-xs text-slate-500 mt-1">
+                TRIM (Truth in Millage) notices are typically mailed in August. File with your <strong>county Value Adjustment Board</strong>.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {analysis.hasCase && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-5">
+            <div className="font-semibold text-red-800 mb-1">You likely have grounds for a just value appeal</div>
+            <p className="text-sm text-red-700">
+              Your property has a just value of <strong>${analysis.subjectRatio?.toFixed(2)}/sqft</strong>, which is{' '}
+              <strong>{analysis.overassessmentPct.toFixed(1)}% higher</strong> than comparable properties in {parcel.municipality}
+              ({analysis.medianCompRatio?.toFixed(2)}/sqft median).
+              Under FL Statute §194.011, you may petition the VAB to reduce the just value to reflect market value or equal treatment.
+            </p>
+            {analysis.potentialSavings > 0 && (
+              <div className="mt-2 text-sm font-medium text-red-800">
+                Estimated annual tax savings if successful: ~{fmt(analysis.potentialSavings)}
+              </div>
+            )}
+          </div>
+        )}
+
+        {analysis.borderline && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-5">
+            <div className="font-semibold text-yellow-800 mb-1">Borderline — gather more evidence</div>
+            <p className="text-sm text-yellow-700">
+              Your just value is slightly above the median comp. A recent independent appraisal or
+              recent sale price documentation would strengthen your petition.
+            </p>
+          </div>
+        )}
+
+        <div className="bg-purple-50 border border-purple-200 rounded-xl p-5 mb-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="flex-1">
+              <div className="font-semibold text-purple-900 mb-1">Generate AI Petition Statement</div>
+              <p className="text-sm text-purple-700">
+                Draft a formal written argument for your VAB hearing based on your just value and comparable property data.
+              </p>
+            </div>
+            <div className="shrink-0">
+              <DisputeGenerator
+                parcel={parcel}
+                municipality={municipality}
+                analysis={analysis}
+                subjectTax={subjectTax}
+                comps={comps}
+                canGenerate={analysis.hasCase || analysis.borderline}
+                stateInfo={stateInfo}
+              />
+            </div>
+          </div>
+        </div>
+
+        <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Petition Steps</h3>
+        <div className="space-y-3 mb-6">
+          <Step n={1} title="File Form DR-486 (Petition to VAB)">
+            File with your county Clerk of the VAB by the deadline. Most counties accept online filing through the county property appraiser's website.
+            <div className="mt-1.5">
+              <a href={dr486Url} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm font-medium underline">
+                Download Form DR-486 (PDF) →
+              </a>
+            </div>
+          </Step>
+          <Step n={2} title="Gather your evidence">
+            Print the comparable properties table above. You may also use recent sale prices of similar homes, an independent appraisal, or evidence of physical condition issues.
+          </Step>
+          <Step n={3} title="Attend your VAB hearing">
+            A special magistrate (independent appraiser or attorney) reviews your evidence.
+            You may appear in person, by phone, or submit written evidence. No attorney required.
+          </Step>
+          <Step n={4} title="If denied — file in Circuit Court">
+            You have 60 days from the VAB's final decision to file in Circuit Court under FL Statute §194.171.
+            <div className="mt-1.5">
+              <a href={vabUrl} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm font-medium underline">
+                FL DOR VAB Taxpayer Guide →
+              </a>
+            </div>
+          </Step>
+        </div>
+
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+          <div className="text-sm font-semibold text-slate-700 mb-2">DR-486 Pre-Fill Reference Data</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
+            <Field label="Property Address" value={parcel.address} />
+            <Field label="City" value={parcel.municipality} />
+            <Field label="Parcel ID" value={parcel.printKey} />
+            <Field label="DOR Use Code" value={`${parcel.propertyClass} — ${parcel.propertyClassDesc}`} />
+            <Field label="Just Value (Current)" value={fmt(parcel.assessmentTotal)} />
+            <Field label="Your Proposed Just Value" value="Enter your estimate based on comps or appraisal" placeholder />
+          </div>
+          <div className="mt-3 text-xs text-slate-400">
+            Select petition type: <em>"Just Value"</em> and/or <em>"Denial of Exemption."</em>
+            If you have a homestead exemption issue, select the appropriate exemption type on DR-486.
+          </div>
+        </div>
+
+        <div className="mt-4 text-xs text-slate-400 text-center">
+          This tool provides information only and does not constitute legal advice.
+          Consult a property tax attorney or Florida-licensed appraiser for complex cases.
+        </div>
+      </div>
+    );
+  }
+
+  // ── Pennsylvania (Philadelphia) appeal panel ─────────────────────────────
+  if (isPA) {
+    const boaUrl = 'https://www.phila.gov/departments/board-of-revision-of-taxes/';
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="flex items-center justify-center w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full">5</span>
+          <h2 className="text-lg font-semibold text-slate-800">Appeal Guide (Philadelphia Board of Revision of Taxes)</h2>
+        </div>
+
+        <div className="rounded-lg p-4 mb-5 bg-blue-50 border border-blue-200">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 mt-0.5 shrink-0 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <div>
+              <div className="font-semibold text-slate-800">Filing Deadline</div>
+              <div className="text-sm text-slate-600 mt-0.5">
+                <strong>October 1</strong> of the year before the tax year — e.g., file by October 1, 2025 to appeal 2026 taxes.
+              </div>
+              <div className="text-xs text-slate-500 mt-1">
+                Philadelphia's BRT handles first-level appeals. Assessed value = market value (100% ratio since 2014).
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {analysis.hasCase && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-5">
+            <div className="font-semibold text-red-800 mb-1">You likely have grounds for an assessment appeal</div>
+            <p className="text-sm text-red-700">
+              Your property is assessed at <strong>${analysis.subjectRatio?.toFixed(2)}/sqft</strong>, which is{' '}
+              <strong>{analysis.overassessmentPct.toFixed(1)}% higher</strong> than comparable properties in ZIP {parcel.neighborhoodCode}
+              ({analysis.medianCompRatio?.toFixed(2)}/sqft median).
+              Under PA Consolidated Statutes Title 53 §8854, you may appeal claiming the assessment exceeds market value or is non-uniform.
+            </p>
+            {analysis.potentialSavings > 0 && (
+              <div className="mt-2 text-sm font-medium text-red-800">
+                Estimated annual tax savings if successful: ~{fmt(analysis.potentialSavings)}
+              </div>
+            )}
+          </div>
+        )}
+
+        {analysis.borderline && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-5">
+            <div className="font-semibold text-yellow-800 mb-1">Borderline — gather more evidence</div>
+            <p className="text-sm text-yellow-700">
+              Your $/sqft is slightly above the median. A recent sale price or independent appraisal will strengthen your appeal significantly.
+            </p>
+          </div>
+        )}
+
+        <div className="bg-purple-50 border border-purple-200 rounded-xl p-5 mb-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="flex-1">
+              <div className="font-semibold text-purple-900 mb-1">Generate AI Appeal Statement</div>
+              <p className="text-sm text-purple-700">
+                Draft a formal written argument for your BRT hearing based on your assessment data and comparable properties.
+              </p>
+            </div>
+            <div className="shrink-0">
+              <DisputeGenerator
+                parcel={parcel}
+                municipality={municipality}
+                analysis={analysis}
+                subjectTax={subjectTax}
+                comps={comps}
+                canGenerate={analysis.hasCase || analysis.borderline}
+                stateInfo={stateInfo}
+              />
+            </div>
+          </div>
+        </div>
+
+        <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Appeal Steps</h3>
+        <div className="space-y-3 mb-6">
+          <Step n={1} title="File with the Board of Revision of Taxes (BRT)">
+            File online at phila.gov/brt or by mail. No filing fee. Deadline is October 1.
+            <div className="mt-1.5">
+              <a href={boaUrl} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm font-medium underline">
+                Philadelphia BRT Appeal Portal →
+              </a>
+            </div>
+          </Step>
+          <Step n={2} title="Submit comparable sales evidence">
+            Upload the comps table from this tool. The BRT weighs recent arm's-length sales of similar properties heavily.
+            Highlight $/sqft disparities and any sales below assessed value.
+          </Step>
+          <Step n={3} title="Attend your BRT hearing">
+            Hearings are typically conducted by a hearing officer. Present your evidence and proposed value.
+            Decisions are mailed within a few months.
+          </Step>
+          <Step n={4} title="If denied — appeal to Common Pleas Court">
+            File within 30 days of the BRT decision in the Philadelphia Court of Common Pleas.
+            An attorney is recommended at this stage.
+          </Step>
+        </div>
+
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+          <div className="text-sm font-semibold text-slate-700 mb-2">BRT Appeal Reference Data</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
+            <Field label="Property Address" value={parcel.address} />
+            <Field label="OPA Account #" value={parcel.printKey} />
+            <Field label="ZIP Code" value={parcel.neighborhoodCode} />
+            <Field label="Building Type" value={parcel.propertyClass} />
+            <Field label="Market Value (Current)" value={fmt(parcel.assessmentTotal)} />
+            <Field label="Your Proposed Value" value="Enter your estimate based on comps or recent sale" placeholder />
+          </div>
+          <div className="mt-3 text-xs text-slate-400">
+            Philadelphia assesses at 100% of market value. Your proposed value should be the true market value supported by comparable sales or a licensed appraisal.
+          </div>
+        </div>
+
+        <div className="mt-4 text-xs text-slate-400 text-center">
+          This tool provides information only and does not constitute legal advice.
+          Consult a property tax attorney or certified appraiser for complex cases.
         </div>
       </div>
     );

@@ -73,8 +73,9 @@ export const STATES = [
     body: 'Value Adjustment Board (VAB)',
     deadline: 'September 18 or 25 days after TRIM notice',
     form: 'DR-486',
+    formUrl: 'https://floridarevenue.com/property/Documents/dr486.pdf',
     infoUrl: 'https://floridarevenue.com/property/Pages/Taxpayers_VAB.aspx',
-    dataStatus: 'coming_soon',
+    dataStatus: 'full',
   },
   {
     abbr: 'GA', name: 'Georgia',
@@ -311,7 +312,10 @@ export const STATES = [
     body: 'County Board of Assessment Appeals',
     deadline: 'Varies by county (typically August 1)',
     infoUrl: 'https://www.revenue.pa.gov/TaxTypes/PropertyTax/Pages/default.aspx',
-    dataStatus: 'coming_soon',
+    dataStatus: 'partial',
+    counties: [
+      { name: 'Philadelphia', cadName: 'Philadelphia OPA', area: 'Philadelphia City/County', dataStatus: 'full' },
+    ],
   },
   {
     abbr: 'RI', name: 'Rhode Island',

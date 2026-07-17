@@ -9,8 +9,10 @@ import ParcelMap from './components/ParcelMap';
 import TownStatsPanel from './components/TownStatsPanel';
 import { searchByAddress, getComparables, normalizeParcel, analyzeOverassessment, getTaxRates, calcEstimatedTax } from './api/orpts';
 import { txSearchByAddress, txGetComparables, normalizeTxParcel, analyzeTxAppraisal } from './api/tx';
-import { cookSearchByAddress, cookGetComparables, normalizeCookParcel } from './api/cook';
+import { cookSearchByAddress, cookGetComparables } from './api/cook';
 import { kingSearchByAddress, kingGetComparables, normalizeKingParcel } from './api/king';
+import { flSearchByAddress, flGetComparables, normalizeFlParcel } from './api/florida';
+import { phillySearchByAddress, phillyGetComparables } from './api/philly';
 import { getMunicipalities } from './data/swis';
 import { TX_COUNTY_MAP } from './data/tx-counties';
 
@@ -39,13 +41,16 @@ export default function App() {
     setError('');
   }
 
+  // States with statewide APIs that need no county/municipality selection
+  const DIRECT_STATES = new Set(['FL']);
+
   function handleStateChange(s) {
     setSelectedState(s);
     setCounty('');
     setStateCounty(null);
     setMunicipality(null);
     resetParcelState();
-    setStep(1);
+    setStep(DIRECT_STATES.has(s?.abbr) ? 2 : 1);
   }
 
   function handleCountyChange(c) {
@@ -87,6 +92,8 @@ export default function App() {
       if (abbr === 'TX') await handleTxSearch(address);
       else if (abbr === 'IL') await handleILSearch(address);
       else if (abbr === 'WA') await handleWASearch(address);
+      else if (abbr === 'FL') await handleFLSearch(address);
+      else if (abbr === 'PA') await handlePASearch(address);
       else await handleNySearch(address);
     } finally {
       setLoading(false);
@@ -236,6 +243,87 @@ export default function App() {
     }
   }
 
+  async function handleFLSearch(address) {
+    try {
+      const raw = await flSearchByAddress({ streetAddress: address });
+      if (!raw.length) {
+        setError('No parcels found. Try a partial street name (e.g. "Oak" instead of "123 Oak St").');
+        return;
+      }
+      const results = raw.map(normalizeFlParcel);
+      setSearchResults(results);
+      setStep(3);
+      if (results.length === 1) await doSelectFLParcel(results[0]);
+    } catch {
+      setError('Error connecting to the Florida statewide cadastral database. Please try again.');
+    }
+  }
+
+  async function doSelectFLParcel(parcel) {
+    setSelectedParcel(parcel);
+    setComps([]); setAnalysis(null); setTaxRates([]); setSubjectTax(null);
+    setLoading(true); setError('');
+    try {
+      const rawComps = await flGetComparables({
+        parcelId: parcel.printKey,
+        dorUc: parseInt(parcel.propertyClass, 10),
+        city: parcel.neighborhoodCode,
+        buildingSqft: parcel.buildingSqft,
+        limit: 30,
+      });
+      const normalized = rawComps.map(normalizeFlParcel);
+      setComps(normalized);
+      setAnalysis(analyzeTxAppraisal(parcel, normalized));
+      setStep(4);
+    } catch {
+      setError('Error fetching comparable properties. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handlePASearch(address) {
+    // Dispatch to correct PA county
+    if (stateCounty === 'Philadelphia') {
+      try {
+        const results = await phillySearchByAddress({ streetAddress: address });
+        if (!results.length) {
+          setError('No parcels found. Try a partial street name.');
+          return;
+        }
+        setSearchResults(results);
+        setStep(3);
+        if (results.length === 1) await doSelectPAParcel(results[0]);
+      } catch {
+        setError('Error connecting to the Philadelphia OPA database. Please try again.');
+      }
+    } else {
+      setError(`Parcel data for ${stateCounty} County is not yet available.`);
+    }
+  }
+
+  async function doSelectPAParcel(parcel) {
+    setSelectedParcel(parcel);
+    setComps([]); setAnalysis(null); setTaxRates([]); setSubjectTax(null);
+    setLoading(true); setError('');
+    try {
+      const comps = await phillyGetComparables({
+        parcelNumber: parcel.printKey,
+        buildingCode: parcel.propertyClass,
+        zip: parcel.neighborhoodCode,
+        buildingSqft: parcel.buildingSqft,
+        limit: 30,
+      });
+      setComps(comps);
+      setAnalysis(analyzeTxAppraisal(parcel, comps));
+      setStep(4);
+    } catch {
+      setError('Error fetching comparable properties. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   // ── WA parcel selection ────────────────────────────────────────────────────
   async function doSelectWAParcel(parcel) {
     setSelectedParcel(parcel);
@@ -266,6 +354,8 @@ export default function App() {
     if (abbr === 'TX') await doSelectTxParcel(parcel);
     else if (abbr === 'IL') await doSelectILParcel(parcel);
     else if (abbr === 'WA') await doSelectWAParcel(parcel);
+    else if (abbr === 'FL') await doSelectFLParcel(parcel);
+    else if (abbr === 'PA') await doSelectPAParcel(parcel);
     else await doSelectNyParcel(parcel);
   }
 
@@ -273,21 +363,27 @@ export default function App() {
     resetParcelState();
     const abbr = selectedState?.abbr;
     if (abbr === 'NY') setStep(municipality ? 2 : 1);
+    else if (DIRECT_STATES.has(abbr)) setStep(2);
     else setStep(stateCountyHasData ? 2 : 1);
   }
 
   const isTX = selectedState?.abbr === 'TX';
   const isIL = selectedState?.abbr === 'IL';
   const isWA = selectedState?.abbr === 'WA';
+  const isFL = selectedState?.abbr === 'FL';
+  const isPA = selectedState?.abbr === 'PA';
   const isNY = selectedState?.abbr === 'NY';
-  const isCountyState = isTX || isIL || isWA;
+  const isCountyState = isTX || isIL || isWA || isPA;
+  const isDirectState = isFL;
 
   const stateCountyHasData = isCountyState && stateCounty && (() => {
     if (isTX) return TX_COUNTY_MAP[stateCounty]?.dataStatus === 'full';
     return selectedState.counties?.find(x => x.name === stateCounty)?.dataStatus === 'full';
   })();
 
-  const showAddressSearch = isCountyState
+  const showAddressSearch = isDirectState
+    ? true
+    : isCountyState
     ? (step >= 2 && stateCountyHasData)
     : (step >= 2 && municipality);
 
@@ -296,6 +392,8 @@ export default function App() {
     if (isTX) return stateCounty ? { name: stateCounty + ' County, TX', swis: null, equalizationRate: 1.0 } : null;
     if (isIL) return stateCounty ? { name: stateCounty + ' County, IL', swis: null, equalizationRate: 1.0 } : null;
     if (isWA) return stateCounty ? { name: stateCounty + ' County, WA', swis: null, equalizationRate: 1.0 } : null;
+    if (isFL) return { name: 'Florida', swis: null, equalizationRate: 1.0 };
+    if (isPA) return stateCounty ? { name: stateCounty + ' County, PA', swis: null, equalizationRate: 1.0 } : null;
     return null;
   })();
 
@@ -336,7 +434,9 @@ export default function App() {
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
             <span className="ml-3 text-slate-600">
-              {isCountyState
+              {isFL
+                ? 'Querying Florida statewide cadastral database...'
+                : isCountyState
                 ? `Querying ${stateCounty} County appraisal database...`
                 : 'Querying NY assessment database...'}
             </span>
@@ -438,6 +538,22 @@ export default function App() {
             <a href="https://gismaps.kingcounty.gov" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">King County GIS</a>
             {' '}&middot;{' '}
             <a href="https://www.kingcounty.gov/en/dept/assessor/buildings-and-your-property/appeal-your-property-value" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">WA Appeal Info</a>
+          </>
+        ) : isFL ? (
+          <>
+            Data sourced from{' '}
+            <a href="https://geodata.floridagio.gov/datasets/FGIO::florida-statewide-parcels/about" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">FloridaGIO Statewide Cadastral</a>
+            {' ('}FL Dept. of Revenue{') '}&middot;{' '}
+            <a href="https://floridarevenue.com/property/Pages/Taxpayers_VAB.aspx" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">FL VAB Petition Info</a>
+          </>
+        ) : isPA ? (
+          <>
+            {stateCounty === 'Philadelphia'
+              ? <>Philadelphia data sourced from <a href="https://data-phl.opendata.arcgis.com/datasets/opa-properties-public" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">Philadelphia OPA Open Data</a></>
+              : 'Pennsylvania assessment data compiled from official county sources.'
+            }
+            {' '}&middot;{' '}
+            <a href="https://www.revenue.pa.gov/TaxTypes/PropertyTax/Pages/default.aspx" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">PA Appeal Info</a>
           </>
         ) : (
           'Property tax appeal data compiled from official state sources.'
