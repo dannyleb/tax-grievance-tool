@@ -146,7 +146,7 @@ export default function ParcelMap({ parcel, comps }) {
           </p>
         </div>
       </div>
-      <div ref={mapRef} style={{ height: 380 }} />
+      <div ref={mapRef} className="h-64 sm:h-96" />
     </div>
   );
 }

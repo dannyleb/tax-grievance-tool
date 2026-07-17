@@ -40,7 +40,7 @@ export default function ParcelCard({ parcel, equalizationRate, analysis, subject
   const txEstTax = isTX ? Math.round(parcel.assessmentTotal * 0.023) : null;
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-6">
       <div className="flex items-center gap-2 mb-1">
         <span className="flex items-center justify-center w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full">3</span>
         <h2 className="text-lg font-semibold text-slate-800">Your Property</h2>

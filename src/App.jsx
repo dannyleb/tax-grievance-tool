@@ -211,7 +211,7 @@ export default function App() {
     <div className="min-h-screen bg-slate-50">
       <Header />
 
-      <main className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+      <main className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-4 sm:space-y-6">
         <LocationSelector
           selectedState={selectedState}
           county={county}
@@ -244,13 +244,13 @@ export default function App() {
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
             <span className="ml-3 text-slate-600">
-              {isTX ? 'Querying Collin CAD appraisal database...' : 'Querying NY assessment database...'}
+              {isTX ? `Querying ${txCounty} County appraisal database...` : 'Querying NY assessment database...'}
             </span>
           </div>
         )}
 
         {step === 3 && searchResults.length > 1 && !selectedParcel && (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-6">
             <h2 className="text-lg font-semibold text-slate-800 mb-1">
               {searchResults.length} parcels found
             </h2>
@@ -324,9 +324,11 @@ export default function App() {
           </>
         ) : isTX ? (
           <>
-            Collin County data sourced from{' '}
-            <a href="https://data.texas.gov" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">data.texas.gov</a>
-            {' '}(Collin Central Appraisal District) &middot;{' '}
+            {txCounty === 'Bexar'
+              ? <>Bexar County data sourced from <a href="https://maps.bexar.org" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">BCAD ArcGIS</a> (Bexar Appraisal District)</>
+              : <>Collin County data sourced from <a href="https://data.texas.gov" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">data.texas.gov</a> (Collin Central Appraisal District)</>
+            }
+            {' '}&middot;{' '}
             <a href="https://comptroller.texas.gov/taxes/property-tax/protest/" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">TX ARB Protest Info</a>
           </>
         ) : (

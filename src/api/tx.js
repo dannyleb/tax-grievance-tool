@@ -1,7 +1,8 @@
 /**
  * Texas CAD API integration.
- * Currently supported: Collin County via data.texas.gov Socrata SODA API.
+ * Supported: Collin County (data.texas.gov Socrata) | Bexar County (BCAD ArcGIS REST).
  */
+import { normalizeBexarParcel, bexarSearchByAddress, bexarGetComparables } from './bexar';
 
 const SOCRATA_BASE = 'https://data.texas.gov/resource';
 
@@ -42,6 +43,7 @@ function getDataset(county) {
 }
 
 export function normalizeTxParcel(raw, county) {
+  if (county === 'Bexar') return normalizeBexarParcel(raw);
   const sqft = parseFloat(raw.imprvmainarea) || 0;
   const marketValue = parseFloat(raw.currvalmarket) || 0;
   const appraisedValue = parseFloat(raw.currvalappraised) || marketValue;
@@ -86,6 +88,7 @@ export function normalizeTxParcel(raw, county) {
 }
 
 export async function txSearchByAddress({ county, streetAddress }) {
+  if (county === 'Bexar') return bexarSearchByAddress({ streetAddress });
   const dataset = getDataset(county);
   // Escape single quotes for SoQL
   const q = streetAddress.toUpperCase().replace(/'/g, "''");
@@ -99,6 +102,15 @@ export async function txSearchByAddress({ county, streetAddress }) {
 }
 
 export async function txGetComparables({ county, propid, propcategorycode, nbhdcode, buildingSqft, limit = 30 }) {
+  if (county === 'Bexar') {
+    return bexarGetComparables({
+      propId: propid,
+      propUse: propcategorycode,
+      nbhd: nbhdcode,
+      buildingSqft,
+      limit,
+    });
+  }
   const dataset = getDataset(county);
   const sqft = parseFloat(buildingSqft) || 0;
 

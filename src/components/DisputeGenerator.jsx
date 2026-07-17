@@ -101,7 +101,7 @@ export default function DisputeGenerator({ parcel, municipality, analysis, subje
       {/* Modal overlay */}
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] flex flex-col">
 
             {/* Modal header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
@@ -207,7 +207,7 @@ export default function DisputeGenerator({ parcel, municipality, analysis, subje
             </div>
 
             {/* Footer actions */}
-            <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between gap-3">
+            <div className="px-6 py-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
               <div className="text-xs text-slate-400">
                 {done
                   ? 'Review carefully — AI-generated content should be verified before filing.'

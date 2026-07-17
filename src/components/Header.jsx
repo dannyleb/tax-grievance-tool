@@ -1,7 +1,7 @@
 export default function Header() {
   return (
     <header className="bg-white border-b border-slate-200 shadow-sm">
-      <div className="max-w-5xl mx-auto px-4 py-5 flex items-center gap-4">
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 py-3 sm:py-5 flex items-center gap-3 sm:gap-4">
         <div className="flex items-center justify-center w-10 h-10 bg-blue-600 rounded-lg shrink-0">
           <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -16,7 +16,7 @@ export default function Header() {
 
       {/* Step banner */}
       <div className="bg-blue-50 border-t border-blue-100 px-4 py-2">
-        <div className="max-w-5xl mx-auto text-sm text-blue-700">
+        <div className="max-w-5xl mx-auto text-xs sm:text-sm text-blue-700">
           <strong>How it works:</strong> Select your state &amp; location → Enter your address → See your assessment → Compare to neighbors → File an appeal if over-assessed
         </div>
       </div>

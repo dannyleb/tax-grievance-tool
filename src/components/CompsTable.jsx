@@ -22,7 +22,7 @@ export default function CompsTable({ subject, comps, analysis, taxRates, stateAb
   const taxYear = hasTaxRates ? taxRates[0]?.fiscalYear : null;
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-6">
       <div className="flex items-center gap-2 mb-1">
         <span className="flex items-center justify-center w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full">4</span>
         <h2 className="text-lg font-semibold text-slate-800">Comparable Properties</h2>
@@ -39,7 +39,7 @@ export default function CompsTable({ subject, comps, analysis, taxRates, stateAb
       </p>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm min-w-[640px]">
           <thead>
             <tr className="border-b border-slate-200">
               <th className="text-left py-2 px-3 font-semibold text-slate-600">Address</th>

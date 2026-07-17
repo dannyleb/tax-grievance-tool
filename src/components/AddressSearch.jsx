@@ -106,13 +106,13 @@ export default function AddressSearch({ municipality, selectedState, onSearch, l
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-6">
       <div className="flex items-center gap-2 mb-4">
         <span className="flex items-center justify-center w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full">2</span>
         <h2 className="text-lg font-semibold text-slate-800">Find Your Property</h2>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex gap-3">
+      <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2 sm:gap-3">
         <div className="flex-1 relative" ref={containerRef}>
           <input
             type="text"
@@ -162,14 +162,14 @@ export default function AddressSearch({ municipality, selectedState, onSearch, l
         <button
           type="submit"
           disabled={loading || !address.trim()}
-          className="px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+          className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
         >
           {loading ? 'Searching...' : 'Search'}
         </button>
         <button
           type="button"
           onClick={() => { setAddress(''); setSuggestions([]); setShowDropdown(false); onReset(); }}
-          className="px-4 py-2.5 bg-slate-100 text-slate-600 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors shrink-0"
+          className="w-full sm:w-auto px-4 py-2.5 bg-slate-100 text-slate-600 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors shrink-0"
         >
           Reset
         </button>

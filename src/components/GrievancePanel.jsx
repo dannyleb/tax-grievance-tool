@@ -28,7 +28,7 @@ export default function GrievancePanel({ parcel, municipality, analysis, comps, 
   // ── Texas protest panel ──────────────────────────────────────────────────
   if (isTX) {
     return (
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-6">
         <div className="flex items-center gap-2 mb-4">
           <span className="flex items-center justify-center w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full">5</span>
           <h2 className="text-lg font-semibold text-slate-800">Protest Guide (Texas ARB)</h2>
@@ -160,7 +160,7 @@ export default function GrievancePanel({ parcel, municipality, analysis, comps, 
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-6">
       <div className="flex items-center gap-2 mb-4">
         <span className="flex items-center justify-center w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full">5</span>
         <h2 className="text-lg font-semibold text-slate-800">Grievance Guide</h2>

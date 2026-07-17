@@ -2,16 +2,16 @@
  * Texas counties with their County Appraisal District (CAD) info.
  * dataStatus: 'full' = live parcel API available | 'coming_soon' = planned
  *
- * Collin CAD publishes on data.texas.gov (Socrata) — the only TX CAD with
- * a CORS-enabled browser-callable API confirmed at this time.
+ * Collin CAD: data.texas.gov Socrata SODA API (CORS-enabled).
+ * Bexar CAD: maps.bexar.org ArcGIS REST API (CORS enabled for dannyleb.github.io).
  * HCAD (Harris), DCAD (Dallas), TCAD (Travis) use bulk downloads only.
  */
 export const TX_COUNTIES = [
   { name: 'Collin',      cad: 'Collin Central Appraisal District',          dataStatus: 'full',         socrataDataset2026: 'nne4-8riu', socrataDataset2025: 'vffy-snc6' },
+  { name: 'Bexar',       cad: 'Bexar Appraisal District (BCAD)',             dataStatus: 'full',         arcgisUrl: 'https://maps.bexar.org/arcgis/rest/services/Parcels/MapServer/0' },
   { name: 'Harris',      cad: 'Harris County Appraisal District (HCAD)',     dataStatus: 'coming_soon' },
   { name: 'Dallas',      cad: 'Dallas Central Appraisal District (DCAD)',    dataStatus: 'coming_soon' },
   { name: 'Tarrant',     cad: 'Tarrant Appraisal District (TAD)',            dataStatus: 'coming_soon' },
-  { name: 'Bexar',       cad: 'Bexar Appraisal District (BCAD)',             dataStatus: 'coming_soon' },
   { name: 'Travis',      cad: 'Travis Central Appraisal District (TCAD)',    dataStatus: 'coming_soon' },
   { name: 'Denton',      cad: 'Denton Central Appraisal District',           dataStatus: 'coming_soon' },
   { name: 'Fort Bend',   cad: 'Fort Bend Central Appraisal District (FBCAD)',dataStatus: 'coming_soon' },
