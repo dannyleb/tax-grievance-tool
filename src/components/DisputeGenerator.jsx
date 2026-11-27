@@ -38,7 +38,7 @@ export default function DisputeGenerator({ parcel, municipality, analysis, subje
     } catch (e) {
       setLoading(false);
       if (e.message === 'NO_API_KEY') {
-        setError('API key not configured. See setup instructions below.');
+        setError('AI statement generation is unavailable on this site right now.');
       } else if (e.message === 'NO_CASE') {
         setError('Your property does not appear to be over-assessed relative to comparable properties — no appeal argument can be generated.');
       } else {
@@ -89,7 +89,7 @@ export default function DisputeGenerator({ parcel, municipality, analysis, subje
         onClick={handleGenerate}
         disabled={!canGenerate}
         className="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
-        title={!canGenerate ? 'No over-assessment detected — appeal statement not applicable' : !apiKeyAvailable ? 'AI features require API key configuration' : ''}
+        title={!canGenerate ? 'No over-assessment detected — appeal statement not applicable' : !apiKeyAvailable ? 'AI statement generation is unavailable' : ''}
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -127,18 +127,11 @@ export default function DisputeGenerator({ parcel, municipality, analysis, subje
 
               {!apiKeyAvailable && !error && (
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 text-sm text-amber-800">
-                  <div className="font-semibold mb-1">API Key Required</div>
-                  <p>To enable AI generation, add your Anthropic API key as a GitHub Actions secret:</p>
-                  <ol className="list-decimal ml-4 mt-2 space-y-1">
-                    <li>Go to your repo → Settings → Secrets and variables → Actions</li>
-                    <li>Add secret: <code className="bg-amber-100 px-1 rounded">ANTHROPIC_API_KEY</code> = your key</li>
-                    <li>The deploy workflow already passes it as <code className="bg-amber-100 px-1 rounded">VITE_ANTHROPIC_API_KEY</code></li>
-                    <li>Re-run the deploy workflow — AI generation will be live</li>
-                  </ol>
-                  <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer"
-                    className="inline-block mt-2 text-amber-700 underline font-medium">
-                    Get an Anthropic API key →
-                  </a>
+                  <div className="font-semibold mb-1">AI statement generation is unavailable</div>
+                  <p>This feature is turned off on this site for now. You can still use the comparable properties and analysis above to write your own grievance statement.</p>
+                  {/* Never put an Anthropic API key in a VITE_* variable or the deploy
+                      workflow: Vite inlines it into the public JavaScript. To turn this
+                      back on, call Claude through a server-side proxy that holds the key. */}
                 </div>
               )}
 
